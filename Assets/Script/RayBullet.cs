@@ -27,6 +27,16 @@ public class RayBullet : MonoBehaviour {
         var tailPosition = _startPosition + _direction * tail;
         var headPosition = _startPosition + _direction * head;
         Debug.DrawLine(tailPosition, headPosition, Color.yellow);
+
+        transform.position = headPosition;
+    }
+
+    void DebugDrawCross(Vector3 position_){
+    }
+
+    void OnTriggerEnter(Collider hit_){
+        Debug.Log("hit: " + hit_);
+        hit_.SendMessage("ApplyDamage", 1, SendMessageOptions.DontRequireReceiver);
     }
 
     public void Fire(Vector3 position_, Vector3 direction_){
@@ -36,6 +46,7 @@ public class RayBullet : MonoBehaviour {
         RaycastHit hit;
         // TODO: handle block
         if (Physics.Raycast(_startPosition, _direction, out hit)){
+            Debug.Log("hit");
             _targetPosition = hit.point;
         }else{
             _targetPosition = position_ + direction_ * 100;

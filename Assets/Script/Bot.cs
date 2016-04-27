@@ -10,6 +10,7 @@ public class Bot : Actor {
 
     private Task _activeTask;
 
+    [SerializeField]
     private string _status = idle;
     private string status {
         get { return _status ?? (_status = idle); }
@@ -39,6 +40,10 @@ public class Bot : Actor {
     // TODO: abtract action
 
     private Vector3 _gotoTargetPosition = Vector3.zero;
+    private Vector3 _gotoTargetDirection = Vector3.forward;
+    private float _gotoStoppingDistance = 0.1f;
+    private float _gotoStoppingAngle = 5.0f;
+    private bool _gotoForceDirection = false;
 
     #endregion 
 
@@ -69,7 +74,9 @@ public class Bot : Actor {
             case "shoot":
                 if (UpdateShoot()){
                     // TODO: handle next status other than idle
-                    // Debug.Log("shoot action is done.");
+                    if (_verbose)
+                        Debug.Log("shoot action is done.");
+
                     status = idle;
                     // status = OnActionDone();
                 }
@@ -125,8 +132,29 @@ public class Bot : Actor {
         }
     }
 
+    [SerializeField]
+    private bool _verbose = true;
+    // TODO: status editor view
+    [SerializeField]
     private string _patrolStatus = "inspecting";
+    [SerializeField]
     private GameObject _attackTarget = null;
+    [SerializeField]
+    private float _detectRadius = 10.0f;
+    [SerializeField]
+    private float _attackRange = 12.0f;
+    [SerializeField]
+    private LayerMask _targetLayer;
+
+    void OnDrawGizmos(){
+        if (_attackTarget != null){
+            Gizmos.DrawLine(transform.position,
+                    _attackTarget.transform.position);
+        }
+
+        Gizmos.DrawWireSphere(transform.position, _detectRadius);
+    }
+
     private bool StartPatrolTask(Task task_){
         var patrolTask = task_ as PatrolTask;
         if (patrolTask != null){
@@ -141,46 +169,99 @@ public class Bot : Actor {
     private bool TickPatrolTask(Task task_){
         var patrolTask = task_ as PatrolTask;
         if (patrolTask != null){
+            // Is shooting
+            if (status == "shoot") return true;
+
             if (_attackTarget == null){
-                var detectRadius = 4.0f;
+                var detectRadius = _detectRadius;
+                var layerMask = _targetLayer.value;
+
+                if (_verbose)
+                    Debug.Log(string.Format(
+                        "_targetLayer.value: {0}", _targetLayer.value));
+
                 var colliders = Physics.OverlapSphere(
-                        transform.position, detectRadius);
+                        transform.position, detectRadius, layerMask);
+
+                if (_verbose)
+                    Debug.Log(string.Format(
+                        "colliders.Length: {0}", colliders.Length));
+
                 var targetColliders = new List<Collider>();
                 _attackTarget = null;
                 for (int i = 0; i < colliders.Length; i++){
                     var collider = colliders[i];
-                    if (collider.gameObject != gameObject &&
-                            collider.tag == "Player"){
+                    if (collider.gameObject != gameObject){
                         targetColliders.Add(collider);
-                        _attackTarget = collider.gameObject;
-                        break;
+                         
+                        var actor = collider.GetComponent<Actor>();
+                        if (actor.IsAlive){
+                            _attackTarget = collider.gameObject;
+                            // TODO: validate raycast
+                            Debug.Log("Detect _attackTarget: " + _attackTarget);
+                            break;
+                        }
                     }
                 }
             }
 
-            var detectEnemy = UnityEngine.Random.value > 0.5f;
-            detectEnemy = _attackTarget != null; 
-            
+            // TODO: handle _attackTarget destroyed
+            var detectEnemy = _attackTarget != null;
+
             if (detectEnemy){
+                // only when detect enemy the first time
                 if (_patrolStatus == "inspecting"){
                     patrolTask.Interrupt();
                 }
-                _patrolStatus = "attacking";
-                Debug.Log("_patrolStatus: " + _patrolStatus);
+
+                var _attackTargetActor = _attackTarget.GetComponent<Actor>();
+                if (_attackTargetActor.IsAlive){
+                    _patrolStatus = "attacking";
+                }else{
+                    detectEnemy = false;
+                    _attackTarget = null;
+                }
             }
 
             if (detectEnemy){
                 var pos2Target = _attackTarget.transform.position - 
                     transform.position;
-                var sqrAttackRange = 4;
-                if (sqrAttackRange < pos2Target.sqrMagnitude){
+                var sqrAttackRange = _attackRange * _attackRange;
+                var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
+
+                var botRadius = 0.5f;
+                // var attackAngle = 1.0f;  // TODO:
+                var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
+                var forward = transform.forward;
+                forward.y = 0;
+                var targetDirection = pos2Target;
+                targetDirection.y = 0;
+                var angle = Vector3.Angle(forward, targetDirection);
+                var inAngle = attackAngle >= angle; 
+                if (_verbose)
+                    Debug.Log(string.Format(
+                                "detectEnemy distance: {0}, angle: {1}, attackAngle: {2}",
+                                pos2Target.magnitude, angle, attackAngle));
+
+                if (!(inRange && inAngle)){
                     // interrupt the current action
                     // and trigger goto action
-                    if (status != idle){
+                    // ??? why cannt in status idle if (status != idle){
                         _gotoTargetPosition = _attackTarget.transform.position;
+                        _gotoStoppingDistance = _attackRange;
+                        _gotoTargetDirection = targetDirection;
+                        _gotoStoppingAngle = 1.0f;
+                        _gotoForceDirection = true;
                         status = "goto";
-                    }
+                    // ??? why cannt in status idle }
                 }else{
+                    if (_verbose){
+                        if (status != "shoot")
+                            Debug.Log("change status to shoot");
+                        else
+                            Debug.Log("status is already shoot");
+                    }
+
                     if (status != "shoot"){
                         status = "shoot";
                     }
@@ -190,6 +271,10 @@ public class Bot : Actor {
                 _patrolStatus = "inspecting";
                 if (status == idle){
                     _gotoTargetPosition = patrolTask.NextPatrolPoint;
+                    _gotoTargetDirection = _gotoTargetPosition - transform.position;
+                    _gotoStoppingDistance = 1.0f;
+                    _gotoStoppingAngle = 1.0f;
+                    _gotoForceDirection = true;
                     status = "goto";
                 }
             }
@@ -326,9 +411,26 @@ public class Bot : Actor {
 
     private bool EnterGoto(){
         if (Motor == null) return false;
+        if (_verbose){
+            var info = "EnterGoto:\n";
+            info += string.Format("_gotoTargetPosition: {0}, {1}, {2}\n",
+                    _gotoTargetPosition.x, _gotoTargetPosition.y, _gotoTargetPosition.z); 
+            info += string.Format("_gotoTargetDirection: {0}, {1}, {2}\n",
+                    _gotoTargetDirection.x, _gotoTargetDirection.y, _gotoTargetDirection.z); 
+            info += "_gotoForceDirection: " + _gotoForceDirection + "\n";
+            info += "_gotoStoppingDistance:" + _gotoStoppingDistance + "\n";
+            info += "_gotoStoppingAngle:" + _gotoStoppingAngle + "\n";
+            Debug.Log(info);
+        }
+
         _gotoDone = false;
         Motor.MovementDone += OnMovementDone;
-        Motor.SetDestination(_gotoTargetPosition);
+        if (!_gotoForceDirection)
+            Motor.SetDestination(_gotoTargetPosition, _gotoStoppingDistance);
+        else
+            Motor.SetDestination(
+                _gotoTargetPosition, _gotoTargetDirection,
+                _gotoStoppingDistance, _gotoStoppingAngle);
         return true;
     }
 
@@ -354,12 +456,15 @@ public class Bot : Actor {
     }
 
     private float _lastShootTime = 0;
+    [SerializeField]
     private float _shootDuration = 2;
     [SerializeField]
     private Weapon _weapon;
 
     private bool EnterShoot(){
-        Debug.Log("EnterShoot");
+        if (_verbose)
+            Debug.Log("EnterShoot");
+
         if (_weapon == null) return false;
         _lastShootTime = Time.realtimeSinceStartup;
         _weapon.Attack();
