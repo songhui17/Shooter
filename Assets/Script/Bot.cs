@@ -2,6 +2,161 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
+public class Sensor {
+    private LayerMask _targetLayer;
+    public LayerMask TargetLayer { set { _targetLayer = value;} }
+   
+    private float _detectRadius = 10.0f; 
+
+    private GameObject _attackTarget = null;
+    public GameObject AttackTarget { get { return _attackTarget; } }
+
+    public Bot Bot;
+    public GameObject gameObject { get { return Bot.gameObject; } }
+    public Transform transform { get { return Bot.transform; } }
+
+    public void Update(){
+        if (_attackTarget == null){
+            var detectRadius = _detectRadius;
+            var layerMask = _targetLayer.value;
+
+            // if (_verbose)
+                // Debug.Log(string.Format(
+                    // "_targetLayer.value: {0}", _targetLayer.value));
+
+            var colliders = Physics.OverlapSphere(
+                    transform.position, detectRadius, layerMask);
+
+            var targetColliders = new List<Collider>();
+            _attackTarget = null;
+            for (int i = 0; i < colliders.Length; i++){
+                var collider = colliders[i];
+                if (collider.gameObject != gameObject){
+                    targetColliders.Add(collider);
+                     
+                    var actor = collider.GetComponent<Actor>();
+                    if (actor.IsAlive){
+                        _attackTarget = collider.gameObject;
+                        // TODO: validate raycast
+                        Debug.Log("Detect _attackTarget: " + _attackTarget);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+public class PatrolAction {
+}
+
+public class AttackAction {
+    private GameObject _attackTarget;
+    public GameObject AttackTarget { set { _attackTarget = value; } }
+
+    public Bot Bot;
+    public Transform transform { get { return Bot.transform; } }
+
+    private float _attackRange = 12.0f;
+
+    public bool Handle() {
+        var detectEnemy = _attackTarget != null;
+
+        if (detectEnemy){
+            var pos2Target = _attackTarget.transform.position - 
+                transform.position;
+            var sqrAttackRange = _attackRange * _attackRange;
+            var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
+
+            var botRadius = 0.5f;
+            // var attackAngle = 1.0f;  // TODO:
+            var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
+            var forward = transform.forward;
+            forward.y = 0;
+            var targetDirection = pos2Target;
+            targetDirection.y = 0;
+            var angle = Vector3.Angle(forward, targetDirection);
+            var inAngle = attackAngle >= angle; 
+            // if (_verbose)
+            //     Debug.Log(string.Format(
+            //                 "detectEnemy distance: {0}, angle: {1}, attackAngle: {2}",
+            //                 pos2Target.magnitude, angle, attackAngle));
+
+            // TODO:
+            // AttackAction := Goto -> Shoot
+            if (!(inRange && inAngle)){
+                // interrupt the current action
+                // and trigger goto action
+                // ??? why cannt in status idle if (status != idle){
+                    Bot.TakeGotoAction(
+                        _attackTarget.transform.position, _attackRange,
+                        targetDirection, 1.0f, true);
+                // ??? why cannt in status idle }
+            }else{
+                var status = Bot.status;
+                // if (_verbose){
+                //     if (status != "shoot")
+                //         Debug.Log("change status to shoot");
+                //     else
+                //         Debug.Log("status is already shoot");
+                // }
+
+                if (status != "shoot"){
+                    // TODO: remove the code
+                    Bot.status = "shoot";
+                }
+            }
+        }
+        return detectEnemy;
+    }
+} 
+
+public class DoorAction {
+    public Bot Bot;
+
+    private SmartDoor _door;
+    public SmartDoor Door { set { _door = value; } }
+
+    public bool Handle() {
+        if (_door != null){
+            if (Bot._patrolStatus != "smartdoor"){
+                // if (_verbose)
+                //     Debug.Log("open_door");
+                Bot._patrolStatus = "smartdoor";
+                Bot.status = "open_door";
+            }  
+            return true;
+        }
+        return false;
+    }
+}
+
+public class BulletAction {
+    public bool Handle() { return false; }
+}
+
+public class FoodAction {
+    public bool Handle() { return false; }
+}
+
+public class InspectAction {
+    public Bot Bot;
+    public Transform transform { get { return Bot.transform; } }
+
+    public PatrolTask patrolTask;
+
+    public bool Handle() {
+        Bot._patrolStatus = "inspecting";
+        if (Bot.status == "idle"){
+            var _gotoTargetPosition = patrolTask.NextPatrolPoint;
+            Bot.TakeGotoAction(
+                _gotoTargetPosition, 1.0f,
+                _gotoTargetPosition - transform.position, 1.0f, true);
+        }
+        return true;
+    }
+}
+
 public class Bot : Actor {
 
     #region Fields
@@ -12,7 +167,7 @@ public class Bot : Actor {
 
     [SerializeField]
     private string _status = idle;
-    private string status {
+    public string status {
         get { return _status ?? (_status = idle); }
         set {
             switch (_status){
@@ -150,23 +305,34 @@ public class Bot : Actor {
     private bool _verbose = true;
     // TODO: status editor view
     [SerializeField]
-    private string _patrolStatus = "inspecting";
-    [SerializeField]
-    private GameObject _attackTarget = null;
-    [SerializeField]
-    private float _detectRadius = 10.0f;
-    [SerializeField]
-    private float _attackRange = 12.0f;
+    public string _patrolStatus = "inspecting";
+
+    private Sensor __sensor;
+    private Sensor _sensor {
+        get { return __sensor ?? (__sensor = new Sensor(){
+                Bot = this,
+                TargetLayer = _targetLayer
+            });
+        }
+    }
+
+    // [SerializeField]
+    // private GameObject _attackTarget = null;
+    // [SerializeField]
+    // private float _detectRadius = 10.0f;
+
+    // [SerializeField]
+    // private float _attackRange = 12.0f;
     [SerializeField]
     private LayerMask _targetLayer;
 
     void OnDrawGizmos(){
-        if (_attackTarget != null){
-            Gizmos.DrawLine(transform.position,
-                    _attackTarget.transform.position);
-        }
+        // if (_attackTarget != null){
+        //     Gizmos.DrawLine(transform.position,
+        //             _attackTarget.transform.position);
+        // }
 
-        Gizmos.DrawWireSphere(transform.position, _detectRadius);
+        // Gizmos.DrawWireSphere(transform.position, _detectRadius);
     }
 
     // TODO: use action to handle SmartDoor
@@ -186,6 +352,16 @@ public class Bot : Actor {
         if (patrolTask != null){
             // not important
             _patrolStatus = "inspecting";
+            _attackAction = new AttackAction(){
+                Bot = this,
+            };
+            _doorAction = new DoorAction(){
+                Bot = this,
+            };
+            _inspectAction = new InspectAction(){
+                Bot = this,
+            };
+            _inspectAction.patrolTask = patrolTask;
             return true;
         }else{
             return false;
@@ -198,42 +374,14 @@ public class Bot : Actor {
             // Is shooting
             if (status == "shoot") return true;
 
-            if (_attackTarget == null){
-                var detectRadius = _detectRadius;
-                var layerMask = _targetLayer.value;
+            _sensor.Update();
 
-                // if (_verbose)
-                    // Debug.Log(string.Format(
-                        // "_targetLayer.value: {0}", _targetLayer.value));
-
-                var colliders = Physics.OverlapSphere(
-                        transform.position, detectRadius, layerMask);
-
-                // if (_verbose)
-                    // Debug.Log(string.Format(
-                        // "colliders.Length: {0}", colliders.Length));
-
-                var targetColliders = new List<Collider>();
-                _attackTarget = null;
-                for (int i = 0; i < colliders.Length; i++){
-                    var collider = colliders[i];
-                    if (collider.gameObject != gameObject){
-                        targetColliders.Add(collider);
-                         
-                        var actor = collider.GetComponent<Actor>();
-                        if (actor.IsAlive){
-                            _attackTarget = collider.gameObject;
-                            // TODO: validate raycast
-                            Debug.Log("Detect _attackTarget: " + _attackTarget);
-                            break;
-                        }
-                    }
-                }
-            }
+            var _attackTarget = _sensor.AttackTarget;
 
             // TODO: handle _attackTarget destroyed
             var detectEnemy = _attackTarget != null;
 
+            // change status
             if (detectEnemy){
                 // only when detect enemy the first time
                 if (_patrolStatus == "inspecting"){
@@ -249,52 +397,26 @@ public class Bot : Actor {
                 }
             }
 
-            if (detectEnemy){
-                var pos2Target = _attackTarget.transform.position - 
-                    transform.position;
-                var sqrAttackRange = _attackRange * _attackRange;
-                var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
-
-                var botRadius = 0.5f;
-                // var attackAngle = 1.0f;  // TODO:
-                var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
-                var forward = transform.forward;
-                forward.y = 0;
-                var targetDirection = pos2Target;
-                targetDirection.y = 0;
-                var angle = Vector3.Angle(forward, targetDirection);
-                var inAngle = attackAngle >= angle; 
-                if (_verbose)
-                    Debug.Log(string.Format(
-                                "detectEnemy distance: {0}, angle: {1}, attackAngle: {2}",
-                                pos2Target.magnitude, angle, attackAngle));
-
-                if (!(inRange && inAngle)){
-                    // interrupt the current action
-                    // and trigger goto action
-                    // ??? why cannt in status idle if (status != idle){
-                        _gotoTargetPosition = _attackTarget.transform.position;
-                        _gotoStoppingDistance = _attackRange;
-                        _gotoTargetDirection = targetDirection;
-                        _gotoStoppingAngle = 1.0f;
-                        _gotoForceDirection = true;
-                        status = "goto";
-                    // ??? why cannt in status idle }
-                }else{
-                    if (_verbose){
-                        if (status != "shoot")
-                            Debug.Log("change status to shoot");
-                        else
-                            Debug.Log("status is already shoot");
-                    }
-
-                    if (status != "shoot"){
-                        status = "shoot";
-                    }
-                }
+            _attackAction.AttackTarget = _sensor.AttackTarget;
+            if (_attackAction.Handle()){
+                return true;
             }
-            // }else{
 
+            _doorAction.Door = _door;
+            if (_doorAction.Handle()){
+                return true;
+            }
+
+            // do nothing but set status
+            if (_inspectAction.Handle()){
+                // return;
+            }
+
+            if (patrolTask.IsSatisfied()){
+                OnTaskDone();
+                // TODO: handle patrol failure: bot die
+            }
+            return true;
 
 /*Python
 
@@ -352,34 +474,6 @@ handle_goto_next_patrolpoint()
 Q: which is door failed to open?
 
 **/
-            if (_door != null){
-                if (_patrolStatus != "smartdoor"){
-                    if (_verbose)
-                        Debug.Log("open_door");
-                    _patrolStatus = "smartdoor";
-                    status = "open_door";
-                }  
-                return true;
-            }
-
-            {
-                // do nothing but set status
-                _patrolStatus = "inspecting";
-                if (status == idle){
-                    _gotoTargetPosition = patrolTask.NextPatrolPoint;
-                    _gotoTargetDirection = _gotoTargetPosition - transform.position;
-                    _gotoStoppingDistance = 1.0f;
-                    _gotoStoppingAngle = 1.0f;
-                    _gotoForceDirection = true;
-                    status = "goto";
-                }
-            }
-
-            if (patrolTask.IsSatisfied()){
-                OnTaskDone();
-                // TODO: handle patrol failure: bot die
-            }
-            return true;
         }else{
             return false;
         }
@@ -401,6 +495,10 @@ Q: which is door failed to open?
     private bool TickFarmTask(Task task_){
         return false;
     }
+
+    private AttackAction _attackAction;
+    private DoorAction _doorAction;
+    private InspectAction _inspectAction;
 
     private string StartTask(Task task_){
         _activeTask = task_;
@@ -588,5 +686,17 @@ Q: which is door failed to open?
         return Time.realtimeSinceStartup - _beginOpenDoorTime > _openDoorDuration;  // animation time
     }
 
+    public bool TakeGotoAction(
+            Vector3 targetPosition_, float stoppingDistance_,
+            Vector3 targetDirection_, float stoppingAngle_,
+            bool forceDirection_){
+        _gotoTargetPosition = targetPosition_; 
+        _gotoStoppingDistance = stoppingDistance_; 
+        _gotoTargetDirection = targetDirection_;
+        _gotoStoppingAngle = stoppingAngle_;
+        _gotoForceDirection = forceDirection_;
+        status = "goto";
+        return true;
+    }
     #endregion
 }
