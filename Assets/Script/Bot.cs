@@ -30,6 +30,9 @@ public class Bot : Actor {
                         status = idle;
                     }
                     break;
+                case "open_door":
+                    EnterOpenDoor();
+                    break;
             }
         }
     }
@@ -77,6 +80,17 @@ public class Bot : Actor {
                     if (_verbose)
                         Debug.Log("shoot action is done.");
 
+                    status = idle;
+                    // status = OnActionDone();
+                }
+                break;
+            case "open_door":
+                if (UpdateOpenDoor()){
+                    // TODO: handle next status other than idle
+                    if (_verbose)
+                        Debug.Log("open_door action is done.");
+
+                    _door = null;
                     status = idle;
                     // status = OnActionDone();
                 }
@@ -155,6 +169,18 @@ public class Bot : Actor {
         Gizmos.DrawWireSphere(transform.position, _detectRadius);
     }
 
+    // TODO: use action to handle SmartDoor
+    SmartDoor _door;
+    void ReceiveSmartObject(GameObject object_){
+        if (_verbose)
+            Debug.Log(string.Format("ReceiveSmartObject object_: {0}", object_));
+        _door = object_.GetComponent<SmartDoor>();
+        if (_door != null){
+            // TODO: push door
+            // Q: why take action on receive
+        }
+    }
+
     private bool StartPatrolTask(Task task_){
         var patrolTask = task_ as PatrolTask;
         if (patrolTask != null){
@@ -176,16 +202,16 @@ public class Bot : Actor {
                 var detectRadius = _detectRadius;
                 var layerMask = _targetLayer.value;
 
-                if (_verbose)
-                    Debug.Log(string.Format(
-                        "_targetLayer.value: {0}", _targetLayer.value));
+                // if (_verbose)
+                    // Debug.Log(string.Format(
+                        // "_targetLayer.value: {0}", _targetLayer.value));
 
                 var colliders = Physics.OverlapSphere(
                         transform.position, detectRadius, layerMask);
 
-                if (_verbose)
-                    Debug.Log(string.Format(
-                        "colliders.Length: {0}", colliders.Length));
+                // if (_verbose)
+                    // Debug.Log(string.Format(
+                        // "colliders.Length: {0}", colliders.Length));
 
                 var targetColliders = new List<Collider>();
                 _attackTarget = null;
@@ -266,7 +292,77 @@ public class Bot : Actor {
                         status = "shoot";
                     }
                 }
-            }else{
+            }
+            // }else{
+
+
+/*Python
+
+update(sensor):
+    active: detect enemy
+    passive: hit door, hit food -> hit smart object
+
+-->  
+
+detect_enemy = check_detect_enemy(sensor)
+if detect_enemy:
+    handle_enemy()  # attack, quite interesting part
+    return
+
+hit_door = check_hit_door(sensor)
+if hit_door:
+    handle_door()  # open the door
+    return
+
+find_food = check_find_food(sensor)
+if find_food:
+    handle_food()  # pick and eat
+    return
+
+find_bullet = check_find_bullet(sensor)
+if find_bullet:
+    handle_bullet  # pick
+    return
+
+(...)
+
+goto_next_patrolpoint();
+
+-->
+
+if handle_enemy():
+    return;
+
+if handle_door():
+    return
+
+if handle_food():
+    return
+
+if handle_bullet():
+   return
+
+(...) :
+    handle_other_actions
+    make_other_desicions
+
+handle_goto_next_patrolpoint()
+
+
+Q: which is door failed to open?
+
+**/
+            if (_door != null){
+                if (_patrolStatus != "smartdoor"){
+                    if (_verbose)
+                        Debug.Log("open_door");
+                    _patrolStatus = "smartdoor";
+                    status = "open_door";
+                }  
+                return true;
+            }
+
+            {
                 // do nothing but set status
                 _patrolStatus = "inspecting";
                 if (status == idle){
@@ -477,6 +573,19 @@ public class Bot : Actor {
 
     private void ExitShoot(){
         // Do nothing
+    }
+
+    private float _beginOpenDoorTime;
+    private float _openDoorDuration = 2.0f;
+    private void EnterOpenDoor(){
+        if (_verbose)
+            Debug.Log("EnterOpenDoor");
+        _beginOpenDoorTime = Time.realtimeSinceStartup;
+        _door.SendMessage("Trigger");
+    }
+
+    private bool UpdateOpenDoor(){
+        return Time.realtimeSinceStartup - _beginOpenDoorTime > _openDoorDuration;  // animation time
     }
 
     #endregion
