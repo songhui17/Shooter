@@ -23,10 +23,10 @@ public class MouseLook : MonoBehaviour
     {
         var mousePosition = Input.mousePosition;
         var delta = mousePosition - lastMousePosition;
-        var deltaX = delta.x / Screen.width;
+        // var deltaX = delta.x / Screen.width;
 
-        var run = Input.GetKey(KeyCode.LeftShift);
-        var rotateSpeed = run ? 100 : 400;
+        // var run = Input.GetKey(KeyCode.LeftShift);
+        // var rotateSpeed = run ? 100 : 400;
         //transform.Rotate(Vector3.up, deltaX * rotateSpeed * Time.deltaTime, Space.Self);
 
         lastMousePosition = mousePosition;

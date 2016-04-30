@@ -2,168 +2,22 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-public class Sensor {
-    private LayerMask _targetLayer;
-    public LayerMask TargetLayer { set { _targetLayer = value;} }
-   
-    private float _detectRadius = 10.0f; 
-
-    private GameObject _attackTarget = null;
-    public GameObject AttackTarget { get { return _attackTarget; } }
-
-    public Bot Bot;
-    public GameObject gameObject { get { return Bot.gameObject; } }
-    public Transform transform { get { return Bot.transform; } }
-
-    public void Update(){
-        if (_attackTarget == null){
-            var detectRadius = _detectRadius;
-            var layerMask = _targetLayer.value;
-
-            // if (_verbose)
-                // Debug.Log(string.Format(
-                    // "_targetLayer.value: {0}", _targetLayer.value));
-
-            var colliders = Physics.OverlapSphere(
-                    transform.position, detectRadius, layerMask);
-
-            var targetColliders = new List<Collider>();
-            _attackTarget = null;
-            for (int i = 0; i < colliders.Length; i++){
-                var collider = colliders[i];
-                if (collider.gameObject != gameObject){
-                    targetColliders.Add(collider);
-                     
-                    var actor = collider.GetComponent<Actor>();
-                    if (actor.IsAlive){
-                        _attackTarget = collider.gameObject;
-                        // TODO: validate raycast
-                        Debug.Log("Detect _attackTarget: " + _attackTarget);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-}
-
-public class PatrolAction {
-}
-
-public class AttackAction {
-    private GameObject _attackTarget;
-    public GameObject AttackTarget { set { _attackTarget = value; } }
-
-    public Bot Bot;
-    public Transform transform { get { return Bot.transform; } }
-
-    private float _attackRange = 12.0f;
-
-    public bool Handle() {
-        var detectEnemy = _attackTarget != null;
-
-        if (detectEnemy){
-            var pos2Target = _attackTarget.transform.position - 
-                transform.position;
-            var sqrAttackRange = _attackRange * _attackRange;
-            var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
-
-            var botRadius = 0.5f;
-            // var attackAngle = 1.0f;  // TODO:
-            var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
-            var forward = transform.forward;
-            forward.y = 0;
-            var targetDirection = pos2Target;
-            targetDirection.y = 0;
-            var angle = Vector3.Angle(forward, targetDirection);
-            var inAngle = attackAngle >= angle; 
-            // if (_verbose)
-            //     Debug.Log(string.Format(
-            //                 "detectEnemy distance: {0}, angle: {1}, attackAngle: {2}",
-            //                 pos2Target.magnitude, angle, attackAngle));
-
-            // TODO:
-            // AttackAction := Goto -> Shoot
-            if (!(inRange && inAngle)){
-                // interrupt the current action
-                // and trigger goto action
-                // ??? why cannt in status idle if (status != idle){
-                    Bot.TakeGotoAction(
-                        _attackTarget.transform.position, _attackRange,
-                        targetDirection, 1.0f, true);
-                // ??? why cannt in status idle }
-            }else{
-                var status = Bot.status;
-                // if (_verbose){
-                //     if (status != "shoot")
-                //         Debug.Log("change status to shoot");
-                //     else
-                //         Debug.Log("status is already shoot");
-                // }
-
-                if (status != "shoot"){
-                    // TODO: remove the code
-                    Bot.status = "shoot";
-                }
-            }
-        }
-        return detectEnemy;
-    }
-} 
-
-public class DoorAction {
-    public Bot Bot;
-
-    private SmartDoor _door;
-    public SmartDoor Door { set { _door = value; } }
-
-    public bool Handle() {
-        if (_door != null){
-            if (Bot._patrolStatus != "smartdoor"){
-                // if (_verbose)
-                //     Debug.Log("open_door");
-                Bot._patrolStatus = "smartdoor";
-                Bot.status = "open_door";
-            }  
-            return true;
-        }
-        return false;
-    }
-}
-
-public class BulletAction {
-    public bool Handle() { return false; }
-}
-
-public class FoodAction {
-    public bool Handle() { return false; }
-}
-
-public class InspectAction {
-    public Bot Bot;
-    public Transform transform { get { return Bot.transform; } }
-
-    public PatrolTask patrolTask;
-
-    public bool Handle() {
-        Bot._patrolStatus = "inspecting";
-        if (Bot.status == "idle"){
-            var _gotoTargetPosition = patrolTask.NextPatrolPoint;
-            Bot.TakeGotoAction(
-                _gotoTargetPosition, 1.0f,
-                _gotoTargetPosition - transform.position, 1.0f, true);
-        }
-        return true;
-    }
-}
-
 public class Bot : Actor {
 
     #region Fields
 
+    private bool _verbose = true;
+
     private const string idle = "idle";
 
     private Task _activeTask;
+
+    public string _patrolStatus;
+    private PatrolAction _patrolAction;
+
+    #endregion
+
+    #region Properties
 
     [SerializeField]
     private string _status = idle;
@@ -192,11 +46,16 @@ public class Bot : Actor {
         }
     }
 
+    private Sensor _sensor;
+    private Sensor Sensor {
+        get { return _sensor ?? (_sensor = GetComponent<Sensor>()); }
+    }
+
     #endregion
 
     #region Action Params 
+    
     // TODO: abtract action
-
     private Vector3 _gotoTargetPosition = Vector3.zero;
     private Vector3 _gotoTargetDirection = Vector3.forward;
     private float _gotoStoppingDistance = 0.1f;
@@ -245,7 +104,6 @@ public class Bot : Actor {
                     if (_verbose)
                         Debug.Log("open_door action is done.");
 
-                    _door = null;
                     status = idle;
                     // status = OnActionDone();
                 }
@@ -301,179 +159,44 @@ public class Bot : Actor {
         }
     }
 
-    [SerializeField]
-    private bool _verbose = true;
-    // TODO: status editor view
-    [SerializeField]
-    public string _patrolStatus = "inspecting";
-
-    private Sensor __sensor;
-    private Sensor _sensor {
-        get { return __sensor ?? (__sensor = new Sensor(){
-                Bot = this,
-                TargetLayer = _targetLayer
-            });
-        }
-    }
-
-    // [SerializeField]
-    // private GameObject _attackTarget = null;
-    // [SerializeField]
-    // private float _detectRadius = 10.0f;
-
-    // [SerializeField]
-    // private float _attackRange = 12.0f;
-    [SerializeField]
-    private LayerMask _targetLayer;
-
-    void OnDrawGizmos(){
-        // if (_attackTarget != null){
-        //     Gizmos.DrawLine(transform.position,
-        //             _attackTarget.transform.position);
-        // }
-
-        // Gizmos.DrawWireSphere(transform.position, _detectRadius);
-    }
-
     // TODO: use action to handle SmartDoor
-    SmartDoor _door;
-    void ReceiveSmartObject(GameObject object_){
-        if (_verbose)
-            Debug.Log(string.Format("ReceiveSmartObject object_: {0}", object_));
-        _door = object_.GetComponent<SmartDoor>();
-        if (_door != null){
-            // TODO: push door
-            // Q: why take action on receive
-        }
-    }
+    // SmartDoor _door;
+    // void ReceiveSmartObject(GameObject object_){
+    //     if (_verbose)
+    //         Debug.Log(string.Format("ReceiveSmartObject object_: {0}", object_));
+    //     _door = object_.GetComponent<SmartDoor>();
+    //     if (_door != null){
+    //         // TODO: push door
+    //         // Q: why take action on receive
+    //     }
+    // }
 
     private bool StartPatrolTask(Task task_){
-        var patrolTask = task_ as PatrolTask;
-        if (patrolTask != null){
-            // not important
-            _patrolStatus = "inspecting";
-            _attackAction = new AttackAction(){
+        if (_patrolAction == null){
+            _patrolAction = new PatrolAction(){
                 Bot = this,
+                Sensor = Sensor,
             };
-            _doorAction = new DoorAction(){
-                Bot = this,
-            };
-            _inspectAction = new InspectAction(){
-                Bot = this,
-            };
-            _inspectAction.patrolTask = patrolTask;
-            return true;
-        }else{
-            return false;
         }
+        if (_patrolAction == null){
+            _patrolAction = new PatrolAction(){
+                Bot = this,
+                Sensor = Sensor,
+            };
+        }
+
+
+        return _patrolAction.Start(task_);
     }
 
     private bool TickPatrolTask(Task task_){
-        var patrolTask = task_ as PatrolTask;
-        if (patrolTask != null){
-            // Is shooting
-            if (status == "shoot") return true;
-
-            _sensor.Update();
-
-            var _attackTarget = _sensor.AttackTarget;
-
-            // TODO: handle _attackTarget destroyed
-            var detectEnemy = _attackTarget != null;
-
-            // change status
-            if (detectEnemy){
-                // only when detect enemy the first time
-                if (_patrolStatus == "inspecting"){
-                    patrolTask.Interrupt();
-                }
-
-                var _attackTargetActor = _attackTarget.GetComponent<Actor>();
-                if (_attackTargetActor.IsAlive){
-                    _patrolStatus = "attacking";
-                }else{
-                    detectEnemy = false;
-                    _attackTarget = null;
-                }
-            }
-
-            _attackAction.AttackTarget = _sensor.AttackTarget;
-            if (_attackAction.Handle()){
-                return true;
-            }
-
-            _doorAction.Door = _door;
-            if (_doorAction.Handle()){
-                return true;
-            }
-
-            // do nothing but set status
-            if (_inspectAction.Handle()){
-                // return;
-            }
-
+        if (_patrolAction.Update(task_)){
+            var patrolTask = task_ as PatrolTask;
             if (patrolTask.IsSatisfied()){
                 OnTaskDone();
                 // TODO: handle patrol failure: bot die
             }
             return true;
-
-/*Python
-
-update(sensor):
-    active: detect enemy
-    passive: hit door, hit food -> hit smart object
-
--->  
-
-detect_enemy = check_detect_enemy(sensor)
-if detect_enemy:
-    handle_enemy()  # attack, quite interesting part
-    return
-
-hit_door = check_hit_door(sensor)
-if hit_door:
-    handle_door()  # open the door
-    return
-
-find_food = check_find_food(sensor)
-if find_food:
-    handle_food()  # pick and eat
-    return
-
-find_bullet = check_find_bullet(sensor)
-if find_bullet:
-    handle_bullet  # pick
-    return
-
-(...)
-
-goto_next_patrolpoint();
-
--->
-
-if handle_enemy():
-    return;
-
-if handle_door():
-    return
-
-if handle_food():
-    return
-
-if handle_bullet():
-   return
-
-(...) :
-    handle_other_actions
-    make_other_desicions
-
-handle_goto_next_patrolpoint()
-
-
-Q: which is door failed to open?
-
-**/
         }else{
             return false;
         }
@@ -496,76 +219,25 @@ Q: which is door failed to open?
         return false;
     }
 
-    private AttackAction _attackAction;
-    private DoorAction _doorAction;
-    private InspectAction _inspectAction;
-
     private string StartTask(Task task_){
         _activeTask = task_;
         if (_activeTask == null) return idle;
 
         if (StartGotoTask(task_)){
-            return idle; // use Tick...Task  // return TakeNextAction();
+            return idle; // use Tick...Task
         }
 
         if (StartFarmTask(task_)){
-            return idle; // use Tick...Task  // return TakeNextAction();
+            return idle; // use Tick...Task
         }
 
         if (StartPatrolTask(task_)){
-            return idle; // use Tick...Task  // return TakeNextAction();
+            return idle; // use Tick...Task
         }
 
         OnTaskDone();
         return idle;
     }
-    
-    private string TakeNextAction(){
-        var gotoTask = _activeTask as GotoTask;
-        if (gotoTask != null){
-            _gotoTargetPosition = gotoTask.TargetPosition;
-            return "goto";
-        }
-
-        var patrolTask = _activeTask as PatrolTask;
-        if (patrolTask != null){
-            switch (_patrolStatus){
-                case "inspecting":
-                    _gotoTargetPosition = patrolTask.NextPatrolPoint; 
-                    return "goto";
-                case "attacking":
-                    // TODO: more logic
-                    return "shoot";
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        throw new NotImplementedException();
-    }
-
-    private bool HasNextAction(){
-        var gotoTask = _activeTask as GotoTask;
-        if (gotoTask != null){
-            return !gotoTask.IsSatisfied();
-        }
-
-        var patrolTask = _activeTask as PatrolTask;
-        if (patrolTask != null){
-            return !patrolTask.IsSatisfied();
-        }
-
-        throw new NotImplementedException();
-    }
-
-    // private string OnActionDone(){
-        // if (HasNextAction()){
-            // return TakeNextAction();
-        // }else{
-            // OnTaskDone();
-            // return idle;
-        // }
-    // }
 
     private void OnTaskDone(){
         Debug.Log("There is no more action to take.");
@@ -677,13 +349,17 @@ Q: which is door failed to open?
     private float _openDoorDuration = 2.0f;
     private void EnterOpenDoor(){
         if (_verbose)
-            Debug.Log("EnterOpenDoor");
+            Debug.Log(string.Format(
+                        "EnterOpenDoor Sensor.Door:{0}", Sensor.Door));
+        // TODO: handle EnterOpenDoor failed?
+        // if (Sensor.Door == null) return false;
         _beginOpenDoorTime = Time.realtimeSinceStartup;
-        _door.SendMessage("Trigger");
+        if (Sensor.Door != null) Sensor.Door.SendMessage("Trigger");
     }
 
     private bool UpdateOpenDoor(){
-        return Time.realtimeSinceStartup - _beginOpenDoorTime > _openDoorDuration;  // animation time
+        return Time.realtimeSinceStartup - _beginOpenDoorTime >
+            _openDoorDuration;  // animation time
     }
 
     public bool TakeGotoAction(

@@ -4,6 +4,12 @@ using System.Collections;
 public class SmartDoor : MonoBehaviour {
     [SerializeField]
     private Animator _animator;
+    public bool Opened { 
+        get { 
+            var stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            return stateInfo.IsName("SmartDoorOpen");
+        }
+    }
 
     void OnCollisionEnter(Collision collision_){
         Debug.Log(string.Format(
