@@ -5,6 +5,8 @@ using System.Collections.Generic;
 public class TaskManager : MonoBehaviour
 {
     #region Properties
+    [SerializeField]
+    private bool _verbose = true;
 
     private static TaskManager _instance;
     public static TaskManager Instance {
@@ -12,6 +14,9 @@ public class TaskManager : MonoBehaviour
         set{ _instance = value; }
     }
 
+    [SerializeField]
+    private FightFinishViewModel _fightFinishViewModel;
+    
     [SerializeField]
     private List<Task> _taskList;
     public List<Task> TaskList{
@@ -35,6 +40,27 @@ public class TaskManager : MonoBehaviour
         }else{
             enabled = false;
             Debug.LogWarning("Duplicate instance of TaskManager");
+        }
+
+        foreach (var task in TaskList){
+            if (task.IsPrimaryTask){
+                task.TaskDone += () => {
+                    if (_verbose)
+                        Debug.Log(string.Format(
+                            "TaskDone: {0}, _fightFinishViewModel: {1}",
+                            task, _fightFinishViewModel != null
+                                ? _fightFinishViewModel.ToString() : "null"));
+                    if (_fightFinishViewModel != null){
+                        _fightFinishViewModel.IsFightFinished = true;
+                    }else{
+#if UNITY_EDITOR
+                        UnityEditor.EditorApplication.isPlaying = false;
+#else
+                        Application.Quit();
+#endif
+                    }
+                };
+            }
         }
     }
 

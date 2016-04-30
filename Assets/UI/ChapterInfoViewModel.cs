@@ -1,9 +1,6 @@
 using UnityEngine;
 
 public class ChapterInfoViewModel : ViewModelBase {
-    [SerializeField]
-    private LoadingViewModel _loadingViewModel;
-
     private string _chapterTitle;
     public string ChapterTitle {
         get { return _chapterTitle ?? (_chapterTitle = "[STR] ChapterTitle"); }
@@ -12,6 +9,8 @@ public class ChapterInfoViewModel : ViewModelBase {
 
     public void StartFight(){
         // TODO: scene name
-        _loadingViewModel.StartFight("Prototype");
+        var loadingViewModel = LoadingViewModel.Instance;
+        if (loadingViewModel != null)
+            loadingViewModel.StartFight("Prototype");
     }
 }

@@ -5,6 +5,7 @@ using System.Collections;
 public class Task : MonoBehaviour {
 
 #region Methods
+    public bool IsPrimaryTask = false;
 
     public virtual bool ValidateActor(Actor actor_){
         if (actor_ == null) return false;

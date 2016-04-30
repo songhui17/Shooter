@@ -55,6 +55,7 @@ public class PatrolTask : Task {
     }
 
     public override bool IsSatisfied(){
+        var satisfied = false;
         if (_finishOnLastPoint){
             // (1)
             // _patrolPoints.Count = 0
@@ -82,9 +83,15 @@ public class PatrolTask : Task {
                 // _index = 2
                 // _patrolPoints.Count = 1
                 // return true
-            return _patrolPoints.Count <= 0 || _patrolPoints.Count < _index;
+            satisfied = _patrolPoints.Count <= 0 || _patrolPoints.Count < _index;
         }else{
-            return _patrolPoints.Count <= 0;
+            satisfied = _patrolPoints.Count <= 0;
         }
+
+        if (satisfied)
+            // TODO: remove duplicate call
+            OnTaskDone();
+
+        return satisfied;
     }
 }

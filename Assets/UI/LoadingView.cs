@@ -10,9 +10,21 @@ public class LoadingView : ViewBase {
     private Slider _progressSlider;
 #endregion
 
-    void Awake(){
-        DontDestroyOnLoad(gameObject);
+    private static LoadingView _instance;
+    public static LoadingView Instance {
+        get { return _instance; }
+        private set { _instance = value; }
+    }
 
+    void Awake(){
+        if (Instance != null){
+            enabled = false;
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+
+        DontDestroyOnLoad(gameObject);
         DataContext = GetComponent<LoadingViewModel>();
     }
 

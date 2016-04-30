@@ -24,6 +24,10 @@ public class GotoTask : Task
     }
 
     public override bool IsSatisfied(){
+        if (_actorInZone){
+            // TODO: remove duplicate call
+            OnTaskDone();
+        }
         return _actorInZone;
     }
 
