@@ -1,20 +1,66 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
+/*
+
+## StartFight: Level
+
+View:
+(1) Group: Level title, Level snapshot, Level tasks
+(2) Group: Loading progress, Tips
+
+ViewModel: Scene to load, Prototype, etc.
+
+## BackToLobby: 
+
+View:
+(1) Group:
+    Loading snapshot;
+    Loading Title, e.g. Lobby
+
+(2) Group: Loading progress, Tips
+
+ViewModel: Scene to load, e.g. Lobby
+
+**/
 public class LoadingView : ViewBase {
-#region Fields
+    #region Fields
+
     [SerializeField]
     private bool _verbose = true;
 
     [SerializeField]
+    private Text _tipsText;
+
+    [SerializeField]
     private Slider _progressSlider;
-#endregion
+
+    [SerializeField]
+    private GameObject _backToLobbyPanel;
+    [SerializeField]
+    private Text _backToLobbyTitleText;
+
+    [SerializeField]
+    private GameObject _startFightPanel;
+    [SerializeField]
+    private Text _startFightTitleText;
+    [SerializeField]
+    private List<Text> _startFightTaskListText;
+    
+    #endregion
+
+    #region Properties
 
     private static LoadingView _instance;
     public static LoadingView Instance {
         get { return _instance; }
         private set { _instance = value; }
     }
+
+    #endregion
+
+    #region MonoBehaviour
 
     void Awake(){
         if (Instance != null){
@@ -28,6 +74,8 @@ public class LoadingView : ViewBase {
         DataContext = GetComponent<LoadingViewModel>();
     }
 
+    #endregion
+
     protected override void OnDataContextChanged(
             INotifyPropertyChanged newContext_){
         base.OnDataContextChanged(newContext_);
@@ -36,6 +84,7 @@ public class LoadingView : ViewBase {
             HandlePropertyChanged(newContext_, "IsLoading");
             HandlePropertyChanged(newContext_, "LoadingProgress");
         }else{
+
         }
     }
 
@@ -52,6 +101,23 @@ public class LoadingView : ViewBase {
                                 "isLoading: {0}", isLoading));
                         }
                         gameObject.SetActive(isLoading);
+
+                        if (isLoading){
+                            switch (viewModel.LoadingType){
+                                case LoadingType.StartFight:
+                                    {
+                                        StartFightView(viewModel);
+                                    }
+                                    break;
+                                case LoadingType.BackToLobby:
+                                    {
+                                        BackToLobbyView();
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }    
+                        }
                     }
                     break;
                 case "LoadingProgress":
@@ -70,4 +136,33 @@ public class LoadingView : ViewBase {
         }
     }
 
+    private void StartFightView(LoadingViewModel viewModel_){
+        _startFightPanel.SetActive(true);
+        _backToLobbyPanel.SetActive(false);
+
+        var level = viewModel_.CurrentLevel;
+        var chapterId = level.Chapter.ID;
+
+        // TODO: copy from ChapterInfoView.cs
+        var format = "{0}-{1} {2}";
+        var title = string.Format(
+           format, chapterId, level.ID, level.Title);
+        _startFightTitleText.text = title; 
+
+        // TODO: copy from ChapterInfoView.cs
+        var taskList = level.TaskDescriptionList;
+        for (int i = 0; i < 3; i++){
+            if (i < taskList.Count)
+                _startFightTaskListText[i].text = taskList[i];
+            else
+                _startFightTaskListText[i].text = "任务" + i;
+        }
+    }
+
+    private void BackToLobbyView(){
+        _startFightPanel.SetActive(false);
+        _backToLobbyPanel.SetActive(true);
+
+        _backToLobbyTitleText.text = "游戏大厅";
+    }
 }

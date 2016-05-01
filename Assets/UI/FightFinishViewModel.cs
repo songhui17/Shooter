@@ -12,7 +12,7 @@ public class FightFinishViewModel : ViewModelBase {
 
     public void BackToLobby(){
         if (LoadingViewModel.Instance != null){
-            LoadingViewModel.Instance.StartFight("Lobby");
+            LoadingViewModel.Instance.BackToLobby("Lobby");
         }else{
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;

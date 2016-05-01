@@ -1,9 +1,27 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+public enum LoadingType {
+    StartFight = 0,
+    BackToLobby,
+}
+
 public class LoadingViewModel : ViewModelBase {
+
     [SerializeField]
     private bool _verbose = true;
+    
+    private LoadingType _loadingType;
+    public LoadingType LoadingType {
+        get { return _loadingType; }
+        private set { _loadingType = value; }
+    }
+    
+    private Level _currentLevel;
+    public Level CurrentLevel {
+        get { return _currentLevel; }
+        private set { _currentLevel = value; }
+    }
 
     private AsyncOperation _loadingOperation;
 
@@ -35,15 +53,7 @@ public class LoadingViewModel : ViewModelBase {
     private float _loadingScreenDuration = 2.0f;
     private float _loadingStartTime = 0.0f;
 
-    public void StartFight(string scene_){
-        IsLoading = true;
-        Blackboard.Instance.LastLoadingDone = false;
-        _loadingStartTime = Time.realtimeSinceStartup;
-        _loadingOperation = SceneManager.LoadSceneAsync(scene_);
-        if (_verbose)
-            Debug.Log(string.Format("IsLoading: {0}, scene_: {1}",
-                                    IsLoading, scene_));
-    }
+    #region MonoBehaviour
 
     void Awake(){
         if (Instance != null){
@@ -74,4 +84,40 @@ public class LoadingViewModel : ViewModelBase {
             // Dothing
         }
     }
+
+    #endregion
+
+    #region Methods
+
+    public void StartFight(Level level_){
+        LoadingType = LoadingType.StartFight;
+
+        if (_verbose) 
+            Debug.Log(string.Format("StartFight level_: {0}", level_));
+
+        CurrentLevel = level_;
+        IsLoading = true;
+        Blackboard.Instance.LastLoadingDone = false;
+        _loadingStartTime = Time.realtimeSinceStartup;
+
+        var scene = level_.Scene;
+        _loadingOperation = SceneManager.LoadSceneAsync(scene);
+        if (_verbose)
+            Debug.Log(string.Format("IsLoading: {0}, scene: {1}",
+                                    IsLoading, scene));
+    }
+
+    public void BackToLobby(string scene_ = "Lobby"){
+        LoadingType = LoadingType.BackToLobby;
+
+        IsLoading = true;
+        Blackboard.Instance.LastLoadingDone = false;
+        _loadingStartTime = Time.realtimeSinceStartup;
+        _loadingOperation = SceneManager.LoadSceneAsync(scene_);
+        if (_verbose)
+            Debug.Log(string.Format("IsLoading: {0}, scene_: {1}",
+                                    IsLoading, scene_));
+    }
+
+    #endregion
 }
