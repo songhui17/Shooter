@@ -2,12 +2,31 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class FightFinishView : ViewBase {
-#region Fields
+    #region Fields
     [SerializeField]
     private bool _verbose = true;
-#endregion
+    #endregion
+
+    #region Properties
+
+    // private static FightFinishView _instance;
+    // public static FightFinishView Instance {
+    //     get { return _instance; }
+    //     private set { _instance = value; }
+    // }
+
+    #endregion
+
 
     void Awake(){
+        // if (Instance != null){
+        //     enabled = false;
+        //     Destroy(gameObject);
+        //     return;
+        // }
+        // Instance = this;
+
+        // DontDestroyOnLoad(gameObject);
         DataContext = GetComponent<FightFinishViewModel>();
     }
 

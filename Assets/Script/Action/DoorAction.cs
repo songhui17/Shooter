@@ -5,8 +5,10 @@ public class DoorAction {
     public SmartDoor Door { set { _door = value; } }
 
     public bool Handle() {
-        if (_door != null && !_door.Opened){
+        if (_door != null  // near door
+                && !_door.Opened){
             if (Bot._patrolStatus != "smartdoor"){
+                                // smartdoor action is not triggered, trigger
                 // if (_verbose)
                 //     Debug.Log("open_door");
                 Bot._patrolStatus = "smartdoor";

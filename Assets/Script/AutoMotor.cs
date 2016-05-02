@@ -11,10 +11,13 @@ public class AutoMotor : MonoBehaviour {
     [SerializeField]
     private float _speed = 2.0f;
     [SerializeField]
-    private float _rotateSpeed = 0.1f;
+    private float _rotateSpeed = 40.0f;
 
     private bool _idle = true;
+    public bool IsMoving { get { return !_idle; } }
     private Vector3 _targetPosition;
+    public Vector3 TargetPosition { get { return _targetPosition; } }
+
     private float _sqrStoppingDistance;
     private float SqrStoppingDistance {
         get { return _sqrStoppingDistance > 0 ? _sqrStoppingDistance :
@@ -47,7 +50,7 @@ public class AutoMotor : MonoBehaviour {
         _targetPosition = transform.position;
     }
 
-    void Update(){
+    void FixedUpdate(){
         if (_idle) return;
 
         var position = transform.position;
@@ -62,7 +65,6 @@ public class AutoMotor : MonoBehaviour {
         var inAngle = !_forceDirection || angle <= StoppingAngle;
 
         if (!(inRange && inAngle)){
-            // TODO: two navie movement
             var speed = _speed;
             var rotateSpeed = _rotateSpeed;
 
@@ -72,10 +74,17 @@ public class AutoMotor : MonoBehaviour {
             else if (!_forceStopMoving)
                 _controller.Move(normalized * speed * Time.deltaTime);
 
-            var fromRotation = Quaternion.LookRotation(forward, Vector3.up);
-            var toRotation = Quaternion.LookRotation(_targetForward, Vector3.up);
-            if (!inAngle) transform.rotation = Quaternion.Lerp(fromRotation, toRotation, rotateSpeed * Time.deltaTime);
-            else if (_jumpDirection)  transform.rotation = toRotation;
+            if (!inAngle){
+                var deltaAngle = _rotateSpeed * Time.deltaTime;
+                deltaAngle *= Mathf.Deg2Rad;
+                var newDirection = Vector3.RotateTowards(
+                    forward, _targetForward, deltaAngle, 0);
+                transform.rotation = Quaternion.LookRotation(newDirection, Vector3.up);
+            }
+            else if (_jumpDirection){
+                transform.rotation = Quaternion.LookRotation(
+                        _targetForward, Vector3.up);
+            }
         }else{
             _idle = true;
             var info = "MovementDone:\n";
@@ -89,6 +98,8 @@ public class AutoMotor : MonoBehaviour {
         }
     }
 
+    private void UpdateMovement(bool inRange_, bool inAngle_){
+    }
     public void SetDestination(Vector3 position_, float stoppingDistance_ = 0.1f){
         _targetPosition = position_;
         SqrStoppingDistance = stoppingDistance_ * stoppingDistance_;

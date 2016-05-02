@@ -12,7 +12,25 @@ public class Bot : Actor {
 
     private Task _activeTask;
 
-    public string _patrolStatus;
+    private string __patrolStatus;
+    public string _patrolStatus {
+        get { return __patrolStatus; }
+        set {
+            Debug.Log(string.Format(
+                "Change __patrolStatus from {0} -> {1}",
+                __patrolStatus, value));
+
+            if (__patrolStatus == "inspecting" &&
+                    value != "inspecting"){
+                var patrolTask = _activeTask as PatrolTask;
+                if (patrolTask != null){
+                    patrolTask.Interrupt();
+                }
+            }
+            __patrolStatus = value;
+        }
+    }
+
     private PatrolAction _patrolAction;
 
     #endregion
@@ -28,6 +46,8 @@ public class Bot : Actor {
                 case "goto":
                     ExitGoto();
                     break;
+                default:
+                    break;
             }
             _status = value;
             switch (_status){
@@ -41,6 +61,17 @@ public class Bot : Actor {
                     break;
                 case "open_door":
                     EnterOpenDoor();
+                    break;
+                case "jump":
+                    // EnterJump();
+                    break;
+                case "crouch":
+                    EnterCrouch();
+                    break;
+                case "standup":
+                    EnterStandup();
+                    break;
+                default:
                     break;
             }
         }
@@ -106,6 +137,33 @@ public class Bot : Actor {
 
                     status = idle;
                     // status = OnActionDone();
+                }
+                break;
+            case "jump":
+//                if (UpdateJump()){
+//                    // TODO: handle next status other than idle
+//                    if (_verbose)
+//                        Debug.Log("jump action is done.");
+//
+//                    status = idle;
+//                }
+                break;
+            case "crouch":
+                if (UpdateCrouch()){
+                    // TODO: handle next status other than idle
+                    if (_verbose)
+                        Debug.Log("crouch action is done.");
+
+                    status = idle;
+                }
+                break;
+            case "standup":
+                if (UpdateStandup()){
+                    // TODO: handle next status other than idle
+                    if (_verbose)
+                        Debug.Log("standup action is done.");
+
+                    status = idle;
                 }
                 break;
             default:
@@ -271,7 +329,7 @@ public class Bot : Actor {
     private string _gotoDoneReason = "DestinationReached";
 
     private AutoMotor _motor;
-    private AutoMotor Motor{
+    public AutoMotor Motor{
         get { return _motor ?? (_motor = GetComponent<AutoMotor>()); }
     }
 
@@ -326,6 +384,7 @@ public class Bot : Actor {
     private float _shootDuration = 2;
     [SerializeField]
     private Weapon _weapon;
+    public Weapon Weapon { get { return _weapon; } }
 
     private bool EnterShoot(){
         if (_verbose)
@@ -373,6 +432,84 @@ public class Bot : Actor {
         _gotoForceDirection = forceDirection_;
         status = "goto";
         return true;
+    }
+
+    [SerializeField]
+    private Transform _head;
+    [SerializeField]
+    private float _crouchHeight = 1.0f;
+    [SerializeField]
+    private float _crouchDuration = 1.0f;
+    private float _crouchSpeed = 1.0f;
+
+    [SerializeField]
+    private Vector3 _crouchCharacterControllerCenter = new Vector3(0, -0.5f, 0);
+    [SerializeField]
+    private float _crouchCharacterControllerHeight = 1.0f;
+
+    private Vector3 _standCharacterControllerCenter = Vector3.zero;
+    private float _standCharacterControllerHeight = 2.0f;
+
+    private Vector3 _crouchPosition;
+    private Vector3 _standPosition;
+    public bool _botCrouched = false;
+    private void EnterCrouch(){
+        if (_verbose)
+            Debug.Log("EnterCrouch");
+
+        // TODO: _botCrouched
+
+        _crouchPosition = new Vector3(0, _crouchHeight, 0);
+        _standPosition = _head.localPosition;
+        _crouchSpeed = (_crouchHeight - _standPosition.y) / _crouchDuration;
+
+        var characterController = GetComponent<CharacterController>();
+        _standCharacterControllerCenter = characterController.center;
+        _standCharacterControllerHeight = characterController.height;
+    }
+
+    private bool UpdateCrouch(){
+        // _head.localPosition = Vector3.Lerp(
+        //     _head.localPosition, _crouchPosition, Time.deltaTime * 0.5f);
+        var deltaHeight = _crouchSpeed * Time.deltaTime;
+        _head.localPosition = _head.localPosition + new Vector3(0, deltaHeight, 0);
+
+        var height = _head.localPosition.y;
+        if (Mathf.Abs(height - _crouchHeight) <= 0.01f || height < _crouchHeight){
+            var characterController = GetComponent<CharacterController>();
+            characterController.height = _crouchCharacterControllerHeight;
+            characterController.center = _crouchCharacterControllerCenter;
+            _head.localPosition = _crouchPosition;
+            _botCrouched = true;
+            return true;
+        }
+        else
+            return false;
+    }
+
+    private void EnterStandup(){
+        if (_verbose)
+            Debug.Log("EnterStandup");
+    }
+
+    private bool UpdateStandup(){
+        // TODO: standupSpeed
+        var standupSpeed = -_crouchSpeed;
+        var deltaHeight = standupSpeed * Time.deltaTime;
+        _head.localPosition = _head.localPosition + new Vector3(0, deltaHeight, 0);
+
+        var height = _head.localPosition.y;
+        var standHeight = _standPosition.y;
+        if (Mathf.Abs(height - standHeight) <= 0.01f || height > standHeight){
+            var characterController = GetComponent<CharacterController>();
+            characterController.height = _standCharacterControllerHeight;
+            characterController.center = _standCharacterControllerCenter;
+            _head.localPosition = _standPosition;
+            _botCrouched = false;
+            return true;
+        }
+        else
+            return false;
     }
     #endregion
 }

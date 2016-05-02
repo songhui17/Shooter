@@ -10,6 +10,23 @@ public class FightFinishViewModel : ViewModelBase {
         }
     }
 
+    // private static FightFinishViewModel _instance;
+    // public static FightFinishViewModel Instance {
+    //     get { return _instance; }
+    //     private set { _instance = value; }
+    // }
+
+    // void Awake(){
+    //     if (Instance != null){
+    //         enabled = false;
+    //         Destroy(gameObject);
+    //         return;
+    //     }
+    //     Instance = this;
+
+    //     DontDestroyOnLoad(gameObject);
+    // }
+
     public void BackToLobby(){
         if (LoadingViewModel.Instance != null){
             LoadingViewModel.Instance.BackToLobby("Lobby");

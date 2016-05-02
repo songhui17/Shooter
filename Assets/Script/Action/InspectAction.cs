@@ -7,7 +7,9 @@ public class InspectAction {
     public PatrolTask patrolTask;
 
     public bool Handle() {
-        Bot._patrolStatus = "inspecting";
+        if (Bot._patrolStatus != "inspecting")
+            Bot._patrolStatus = "inspecting";
+
         if (Bot.status == "idle"){
             var _gotoTargetPosition = patrolTask.NextPatrolPoint;
             Bot.TakeGotoAction(

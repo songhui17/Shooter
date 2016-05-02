@@ -15,7 +15,7 @@ public class TaskManager : MonoBehaviour
     }
 
     [SerializeField]
-    private FightFinishViewModel _fightFinishViewModel;
+    private FightFinishViewModel _fightFinishViewModel; //= FightFinishViewModel.Instance;
     
     [SerializeField]
     private List<Task> _taskList;

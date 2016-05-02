@@ -46,6 +46,7 @@ public class PatrolTask : Task {
     }
 
     public void Interrupt(){
+        Debug.Log("Interrupt currentIndex_: " + _index);
         _index--;
         if (_index < 0) _index = _patrolPoints.Count - 1;
     }
@@ -93,5 +94,36 @@ public class PatrolTask : Task {
             OnTaskDone();
 
         return satisfied;
+    }
+
+    [SerializeField]
+    private float _gizmosRadius = 1.0f;
+    [SerializeField]
+    private Color _gizmosColor = Color.cyan;
+    [SerializeField]
+    private Color _gizmosLineColor = Color.cyan;
+
+    void OnDrawGizmos(){
+        var pointsCount = _patrolPoints.Count;
+        for (int i = 0; i < pointsCount; i++){
+            Gizmos.color = _gizmosColor;
+            Gizmos.DrawWireSphere(_patrolPoints[i].position, _gizmosRadius);
+
+            Gizmos.color = _gizmosLineColor;
+            if (!_finishOnLastPoint){
+                if (i < pointsCount - 1){
+                    Gizmos.DrawLine(_patrolPoints[i].position,
+                                    _patrolPoints[i + 1].position);
+                }else{
+                    Gizmos.DrawLine(_patrolPoints[i].position,
+                                    _patrolPoints[0].position);
+                }
+            }else{
+                if (i < pointsCount - 1){
+                    Gizmos.DrawLine(_patrolPoints[i].position,
+                                    _patrolPoints[i + 1].position);
+                }
+            }
+        }
     }
 }

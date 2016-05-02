@@ -16,6 +16,21 @@ public class RayWeapon : Weapon {
         script.Fire(transform.position, transform.forward);
     }
 
+    public bool CanHit(GameObject target_){
+        var _startPosition = transform.position;
+        var _direction = target_.transform.position - transform.position;
+        _direction.y = 0;
+
+        RaycastHit hit;
+        // TODO: handle block
+        if (Physics.Raycast(_startPosition, _direction, out hit)){
+
+            return target_ == hit.collider.gameObject;
+        }else{
+            return false;
+        }
+    }
+
     void OnDrawGizmos(){
         Gizmos.DrawRay(transform.position, transform.forward);
     }

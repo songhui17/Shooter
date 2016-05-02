@@ -13,6 +13,18 @@ public class AttackAction {
         var detectEnemy = _attackTarget != null;
 
         if (detectEnemy){
+            // TODO: weapon
+            var weapon = Bot.Weapon as RayWeapon;
+            bool canHit = weapon.CanHit(_attackTarget);
+            if (!canHit) return false;
+
+            var actor = _attackTarget.GetComponent<Actor>();
+            if (!actor.IsAlive){
+                return false;
+            }
+
+            Bot._patrolStatus = "attacking";
+
             var pos2Target = _attackTarget.transform.position - 
                 transform.position;
             var sqrAttackRange = _attackRange * _attackRange;
@@ -34,6 +46,7 @@ public class AttackAction {
 
             // TODO:
             // AttackAction := Goto -> Shoot
+
             if (!(inRange && inAngle)){
                 // interrupt the current action
                 // and trigger goto action
@@ -50,7 +63,6 @@ public class AttackAction {
                 //     else
                 //         Debug.Log("status is already shoot");
                 // }
-
                 if (status != "shoot"){
                     // TODO: remove the code
                     Bot.status = "shoot";
