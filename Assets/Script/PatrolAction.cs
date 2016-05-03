@@ -119,7 +119,7 @@ public class PatrolAction {
             if (Bot.status == "open_door") return true;
             // patrolStatus == smartdoor
 
-            _attackAction.AttackTarget = Sensor.AttackTarget;
+            // _attackAction.AttackTarget = Sensor.AttackTarget;
             if (_attackAction.Handle()){
                 return true;
             }

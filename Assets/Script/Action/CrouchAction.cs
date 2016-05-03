@@ -109,7 +109,6 @@ public class CrouchAction {
     }
 
     public bool Handle(){
-        var info = "CrouchAction Handle:";
         switch (_state){
             case CrouchState.InActive:
                 return HandleInActiveState();
@@ -123,47 +122,5 @@ public class CrouchAction {
             default:
                 return false;
         }    
-
-        // var obstacleFront = false;
-        // if (Obstacle != null){
-            // if (Motor != null && Motor.IsMoving){
-                // var halfHeight = 1.0f;
-                // var radius = 0.5f;
-                // var layerMask = 1 << LayerMask.NameToLayer("SmartObject");
-                // var startCenter = transform.position - Vector3.up * halfHeight;
-                // var endCenter = transform.position + Vector3.up * halfHeight;
-                // var targetPosition = Motor.TargetPosition;
-                // var direction = targetPosition - transform.position;
-                // var maxDistance = direction.magnitude;
-                // direction.Normalize();
-                // var willHit = Physics.CapsuleCast(
-                        // startCenter, endCenter, radius,
-                        // direction, maxDistance, layerMask);
-                // if (willHit){
-                    // obstacleFront = true;
-                // }
-            // }
-        // }
-// 
-        // if (obstacleFront){
-            // if (!BotCrouched){
-                // var notCrouching = Bot.status != "crouch";
-                // info += string.Format(
-                    // "Bot.status: {0}, notCrouching {1}",
-                    // Bot.status, notCrouching);
-                // Debug.Log(info);
-                // if (notCrouching){
-                    // Debug.Log(string.Format("Trigger crouch action"));
-// 
-                    // Bot._patrolStatus = "crouch";
-                    // Bot.status = "crouch";
-                // }
-                // return true;
-            // }else{
-                // return false;
-            // }
-        // }else{
-            // return false;
-        // }
     }
 }

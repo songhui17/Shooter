@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class Sensor : MonoBehaviour {
@@ -10,14 +11,18 @@ public class Sensor : MonoBehaviour {
    
     private float _detectRadius = 10.0f; 
 
-    [SerializeField]
-    private GameObject _attackTarget = null;
-    public GameObject AttackTarget { get { return _attackTarget; } }
+    private List<GameObject> _attackTargetList;
+    public List<GameObject> AttackTargetList {
+        get { return _attackTargetList ?? (_attackTargetList = new List<GameObject>()); }
+    }
 
     private Bot _bot;
     public Bot Bot {
         get { return _bot ?? (_bot = GetComponent<Bot>()); }
     }
+
+    [SerializeField]
+    private Transform _headTransform;
 
     private AutoMotor Motor {
         get { return Bot.Motor; }
@@ -47,44 +52,60 @@ public class Sensor : MonoBehaviour {
         }
     }
 
-    public void Update() {
-        DetecteAttackTarget();
-        DetectSmartObstacle();
+    void Start(){
+        StartCoroutine(UpdateSensor());
+    }
+
+    IEnumerator UpdateSensor(){
+        var updateDuration = 0.2f;
+        var waitForSeconds = new WaitForSeconds(updateDuration);
+        while (true){
+            yield return waitForSeconds;
+
+            DetecteAttackTarget();
+            DetectSmartObstacle();
+        }
     }
 
     void DetecteAttackTarget(){
-        if (_attackTarget == null){
+        // if (_attackTarget == null){
             var detectRadius = _detectRadius;
             var layerMask = _targetLayer.value;
-
-            // if (_verbose)
-                // Debug.Log(string.Format(
-                    // "_targetLayer.value: {0}", _targetLayer.value));
 
             var colliders = Physics.OverlapSphere(
                     transform.position, detectRadius, layerMask);
 
-            var targetColliders = new List<Collider>();
-            _attackTarget = null;
+            AttackTargetList.Clear();
             for (int i = 0; i < colliders.Length; i++){
                 var collider = colliders[i];
-                if (collider.gameObject != gameObject){
-                    targetColliders.Add(collider);
+                var targetGameObject = collider.gameObject;
+                if (targetGameObject != gameObject){
                      
-                    var actor = collider.GetComponent<Actor>();
-                    // TODO: copy from AttackAction.cs
-                    var weapon = Bot.Weapon as RayWeapon;
-                    bool canHit = weapon.CanHit(collider.gameObject);
+                    var actor = targetGameObject.GetComponent<Actor>();
+                    var alive = actor.IsAlive;
 
-                    if (canHit && actor.IsAlive){
-                        _attackTarget = collider.gameObject;
-                        // TODO: validate raycast
-                        Debug.Log("Detect _attackTarget: " + _attackTarget);
-                        break;
+                    var canSee = true;
+                    var head = _headTransform.position;
+                    var targetPosition = targetGameObject.transform.position;
+                    var direction = targetPosition - head;
+                    var distance = direction.magnitude;
+                    var environmentLayer = ~(1 << LayerMask.NameToLayer("Default"));
+                    direction.Normalize();
+                    RaycastHit hit;
+                    if (Physics.Raycast(head, direction, out hit,
+                                        distance, environmentLayer)){
+                    }else{
+                        canSee = false;
+                        continue;
+                    }
+
+                    if (canSee && actor.IsAlive){
+                        // Debug.Log("Detect targetGameObject: " + targetGameObject);
+                        AttackTargetList.Add(targetGameObject);
                     }
                 }
             }
-        }
+        // }
     }
 
     void DetectSmartObstacle(){
@@ -93,10 +114,10 @@ public class Sensor : MonoBehaviour {
     }
 
     void OnDrawGizmos(){
-        if (_attackTarget != null){
-            Gizmos.DrawLine(transform.position,
-                    _attackTarget.transform.position);
-        }
+        // if (_attackTarget != null){
+        //     Gizmos.DrawLine(transform.position,
+        //             _attackTarget.transform.position);
+        // }
 
         Gizmos.DrawWireSphere(transform.position, _detectRadius);
     }

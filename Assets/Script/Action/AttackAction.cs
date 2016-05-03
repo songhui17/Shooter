@@ -5,12 +5,32 @@ public class AttackAction {
     public GameObject AttackTarget { set { _attackTarget = value; } }
 
     public Bot Bot;
-    public Transform transform { get { return Bot.transform; } }
+    private Transform transform { get { return Bot.transform; } }
+    private Sensor Sensor { get { return Bot.Sensor; } }
 
     private float _attackRange = 12.0f;
 
+    private void ChooseTarget(){
+        var targetList = Sensor.AttackTargetList;
+        var minDistance = float.MaxValue;
+        for (int i = 0; i < targetList.Count; i++){
+            var target = targetList[i];
+            var distance = (transform.position - target.transform.position).sqrMagnitude;
+            if (distance < minDistance){
+                minDistance = distance;
+                _attackTarget = target;
+            }
+        }
+//        Debug.Log(string.Format("_attackTarget: {0}, minDistance: {1}",
+//                   _attackTarget != null ? _attackTarget.ToString() : "null", minDistance));
+    }
+
     public bool Handle() {
         var detectEnemy = _attackTarget != null;
+
+        if (!detectEnemy){
+            ChooseTarget();
+        }
 
         if (detectEnemy){
             // TODO: weapon
