@@ -24,8 +24,15 @@ public class RayWeapon : Weapon {
         RaycastHit hit;
         // TODO: handle block
         if (Physics.Raycast(_startPosition, _direction, out hit)){
-
-            return target_ == hit.collider.gameObject;
+            var hitTarget = target_ == hit.collider.gameObject;
+            if (!hitTarget){
+                Debug.DrawLine(
+                    transform.position, hit.collider.transform.position,
+                    Color.red);
+                // Debug.Break();
+                // Debug.Log(hit.collider.gameObject);
+            }
+            return hitTarget;
         }else{
             return false;
         }

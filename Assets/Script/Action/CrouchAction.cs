@@ -1,5 +1,7 @@
 using UnityEngine;
+using System;
 
+[Serializable]
 public class CrouchAction {
     private enum CrouchState{
         Enter = 0,
@@ -75,7 +77,7 @@ public class CrouchAction {
         }
     }
     
-    private void HandleStayState(){
+    private bool HandleStayState(){
         var obstacleFront = CheckObstacleFront();
         if (!obstacleFront){
             if (BotCrouched){
@@ -85,11 +87,13 @@ public class CrouchAction {
                     Bot._patrolStatus = "crouch";
                     Bot.status = "standup";
                     _state = CrouchState.Exit;
+                    return true;
                 }
             }else{
                 _state = CrouchState.InActive;
             }
         }
+        return false;
     }
 
     private bool HandleEnter(){
@@ -115,8 +119,7 @@ public class CrouchAction {
             case CrouchState.Enter:
                 return HandleEnter();
             case CrouchState.Stay:
-                HandleStayState();
-                return false;  // move ...
+                return HandleStayState();
             case CrouchState.Exit:
                 return HandleExit();
             default:

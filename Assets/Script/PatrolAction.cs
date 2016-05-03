@@ -72,6 +72,7 @@ if handle_crouch():
     return;
 **/
 
+[Serializable]
 public class PatrolAction {
     public Bot Bot;
     public Sensor Sensor;
@@ -118,6 +119,8 @@ public class PatrolAction {
             // patrolStatus == "crouch"
             if (Bot.status == "open_door") return true;
             // patrolStatus == smartdoor
+            //
+            if (Bot.status == "standup") return true;
 
             // _attackAction.AttackTarget = Sensor.AttackTarget;
             if (_attackAction.Handle()){

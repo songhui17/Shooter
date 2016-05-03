@@ -1,5 +1,7 @@
 using UnityEngine;
+using System;
 
+[Serializable]
 public class InspectAction {
     public Bot Bot;
     public Transform transform { get { return Bot.transform; } }
