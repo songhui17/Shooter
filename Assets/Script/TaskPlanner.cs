@@ -113,13 +113,13 @@ public class TaskPlanner : MonoBehaviour {
                 Sensor = Bot.Sensor,
             };
         }
-        if (_patrolAction == null){
-            _patrolAction = new PatrolAction(){
-                Bot = Bot,
-                Sensor = Bot.Sensor,
-            };
-        }
 
+        // When inspector in Debug Mode, _patrolAction is 
+        // created with Bot null
+        if (_patrolAction.Bot == null){
+            _patrolAction.Bot = Bot;
+            _patrolAction.Sensor = Bot.Sensor;
+        }
 
         return _patrolAction.Start(task_);
     }

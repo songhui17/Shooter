@@ -28,28 +28,74 @@ public class Sensor : MonoBehaviour {
         get { return Bot.Motor; }
     }
 
-    // public GameObject gameObject { get { return Bot.gameObject; } }
-    // public Transform transform { get { return Bot.transform; } }
+    // SmartDoor _door;
+    private List<SmartDoor> _pendingSmartDoor = new List<SmartDoor>();
+    private List<SmartDoor> _handledSmartDoor = new List<SmartDoor>();
+    public SmartDoor Door {
+        get {
+            if (_pendingSmartDoor.Count > 0){
+                return _pendingSmartDoor[0];
+            }else{
+                return null;
+            }
+        }
+    }
 
-    SmartDoor _door;
-    public SmartDoor Door { get { return _door; } }
-
-    SmartJumpObstacle _obstacle;
-    public SmartJumpObstacle Obstacle { get { return _obstacle; } }
+    // SmartJumpObstacle _obstacle;
+    private List<SmartJumpObstacle> _pendingJumpObstacle = new List<SmartJumpObstacle>();
+    public SmartJumpObstacle Obstacle {
+        get {
+            if (_pendingJumpObstacle.Count > 0){
+                return _pendingJumpObstacle[0];
+            }else{
+                return null;
+            }
+        }
+    }
 
     void ReceiveSmartObject(GameObject object_){
         if (_verbose)
             Debug.Log(string.Format("ReceiveSmartObject object_: {0}", object_));
-        _door = object_.GetComponent<SmartDoor>();
+        var _door = object_.GetComponent<SmartDoor>();
         if (_door != null){
-            // TODO: push door
-            // Q: why take action on receive
+            _pendingSmartDoor.Add(_door);
         }
 
-        _obstacle = object_.GetComponent<SmartJumpObstacle>();
-        if (_obstacle != null){
-            // _obstacle.TriggerAnimation
+        // CharacterController change size cause OnTriggerExit && OnTriggerEnter
+//        var _obstacle = object_.GetComponent<SmartJumpObstacle>();
+//        if (_obstacle != null){
+//            _pendingJumpObstacle.Add(_obstacle);
+//        }
+    }
+
+    private void LeaveSmartObject(GameObject object_){
+        if (_verbose)
+            Debug.Log(string.Format("LeaveSmartObject object_: {0}", object_));
+
+        var _door = object_.GetComponent<SmartDoor>();
+        if (_door != null){
+            _pendingSmartDoor.Remove(_door);
         }
+
+        // CharacterController change size cause OnTriggerExit && OnTriggerEnter
+//        var _obstacle = object_.GetComponent<SmartJumpObstacle>();
+//        if (_obstacle != null){
+//            _pendingJumpObstacle.Remove(_obstacle);
+//        }
+        var _obstacle = object_.GetComponent<SmartJumpObstacle>();
+        if (_obstacle != null){
+            _pendingJumpObstacle.Add(_obstacle);
+        }
+    }
+
+    public void Handle(SmartJumpObstacle obstacle_){
+        if (obstacle_ == null) return;
+        _pendingJumpObstacle.Remove(obstacle_);
+    }
+
+    public void Handle(SmartDoor door_){
+        if (door_ == null) return;
+        _pendingSmartDoor.Remove(door_);
     }
 
     void Start(){

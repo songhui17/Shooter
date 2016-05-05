@@ -127,12 +127,12 @@ public class PatrolAction {
                 return true;
             }
 
-            _doorAction.Door = Sensor.Door;
+            // _doorAction.Door = Sensor.Door;
             if (_doorAction.Handle()){
                 return true;
             }
 
-            _crouchAction.Obstacle = Sensor.Obstacle;
+            // _crouchAction.Obstacle = Sensor.Obstacle;
             if (_crouchAction.Handle()){
                 return true;
             }

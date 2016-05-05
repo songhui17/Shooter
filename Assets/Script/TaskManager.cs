@@ -71,7 +71,7 @@ public class TaskManager : MonoBehaviour
     public Task GetTask(Actor actor_){
         if (actor_ == null) return null;
 
-        if (!Blackboard.Instance.LastLoadingDone) return null;
+        // if (!Blackboard.Instance.LastLoadingDone) return null;
 
         Profiler.BeginSample("GetTask");
         Task task = null;

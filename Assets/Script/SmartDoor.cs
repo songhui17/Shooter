@@ -24,6 +24,26 @@ public class SmartDoor : MonoBehaviour {
                 SendMessageOptions.DontRequireReceiver);
     }
 
+    void OnTriggerEnter(Collider collider_){
+        Debug.Log(string.Format(
+                    "OnCollisionEnter collider_.gameObject: {0}",
+                    collider_.gameObject));
+
+        collider_.gameObject.SendMessage(
+                "ReceiveSmartObject", gameObject,
+                SendMessageOptions.DontRequireReceiver);
+    }
+
+    void OnTriggerExit(Collider collider_){
+        Debug.Log(string.Format(
+                    "OnTriggerExit collider_.gameObject: {0}",
+                    collider_.gameObject));
+
+        collider_.gameObject.SendMessage(
+                "LeaveSmartObject", gameObject,
+                SendMessageOptions.DontRequireReceiver);
+    }
+
     void Trigger(){
         _animator.SetBool("open", true);
     }

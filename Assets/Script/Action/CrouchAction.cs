@@ -15,9 +15,10 @@ public class CrouchAction {
     public Bot Bot;
     private Transform transform { get { return Bot.transform; } }
     private AutoMotor Motor { get { return Bot.Motor; } }
+    private Sensor Sensor { get { return Bot.Sensor; } }
     private LayerMask _obstacleLayerMask;
 
-    public SmartJumpObstacle Obstacle;
+    private SmartJumpObstacle _obstacle;
     private Vector3 _targetPosition;
 
     // TODO: status of Bot;
@@ -25,7 +26,7 @@ public class CrouchAction {
 
     private bool CheckObstacleFront(){
         var obstacleFront = false;
-        if (Obstacle != null){
+        if (_obstacle != null){
             var halfHeight = 1.0f;
             var radius = 0.5f;
             var layerMask = 1 << LayerMask.NameToLayer("SmartObject");
@@ -41,24 +42,26 @@ public class CrouchAction {
             if (willHit){
                 obstacleFront = true;
             }
-            //if (_state == CrouchState.Stay){
-            //    Debug.Log(
-            //        string.Format("willHit: {0}", willHit));
-            //    if (!willHit){
-            //        Debug.Break();
-            //    }
-            //}
         }
         return obstacleFront;
+    }
+
+    private bool CheckObstacleFront(SmartJumpObstacle obstacle_){
+        if (obstacle_ == null) return false;
+
+        var willEnter = false;
+        var direction = _targetPosition - transform.position;
+        willEnter = Vector3.Dot(direction, obstacle_.transform.forward) > 0;
+        return willEnter;
     }
 
     private bool HandleInActiveState(){
         if (!(Motor != null && Motor.IsMoving)){
             return false;
         }
-
         _targetPosition = Motor.TargetPosition;
-        var obstacleFront = CheckObstacleFront();
+        _obstacle = Sensor.Obstacle;
+        var obstacleFront = CheckObstacleFront(_obstacle);
         if (obstacleFront){
             if (!BotCrouched){
                 var notCrouching = Bot.status != "crouch";
@@ -71,6 +74,7 @@ public class CrouchAction {
             }else{
                 _state = CrouchState.Stay;
             }
+            Sensor.Handle(_obstacle);
             return true;
         }else{
             return false;
@@ -78,7 +82,10 @@ public class CrouchAction {
     }
     
     private bool HandleStayState(){
-        var obstacleFront = CheckObstacleFront();
+        _obstacle = Sensor.Obstacle;
+        if (_obstacle == null) return false;
+
+        var obstacleFront = CheckObstacleFront(_obstacle);
         if (!obstacleFront){
             if (BotCrouched){
                 var notStandingUp = Bot.status != "standup";
@@ -87,11 +94,13 @@ public class CrouchAction {
                     Bot._patrolStatus = "crouch";
                     Bot.status = "standup";
                     _state = CrouchState.Exit;
+                    Sensor.Handle(_obstacle);
                     return true;
                 }
             }else{
                 _state = CrouchState.InActive;
             }
+            Sensor.Handle(_obstacle);
         }
         return false;
     }

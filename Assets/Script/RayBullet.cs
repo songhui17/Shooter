@@ -45,8 +45,10 @@ public class RayBullet : MonoBehaviour {
 
         RaycastHit hit;
         // TODO: handle block
-        if (Physics.Raycast(_startPosition, _direction, out hit)){
-            Debug.Log("hit");
+        var layerMask = ~(1 << LayerMask.NameToLayer("SmartTrigger"));
+        if (Physics.Raycast(_startPosition, _direction, out hit,
+                _direction.magnitude, layerMask)){
+            Debug.Log("hit: " + hit.collider);
             _targetPosition = hit.point;
         }else{
             _targetPosition = position_ + direction_ * 100;

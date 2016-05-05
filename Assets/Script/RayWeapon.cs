@@ -23,7 +23,9 @@ public class RayWeapon : Weapon {
 
         RaycastHit hit;
         // TODO: handle block
-        if (Physics.Raycast(_startPosition, _direction, out hit)){
+        var layerMask = ~(1 << LayerMask.NameToLayer("SmartTrigger"));
+        if (Physics.Raycast(_startPosition, _direction, out hit,
+                _direction.magnitude, layerMask)){
             var hitTarget = target_ == hit.collider.gameObject;
             if (!hitTarget){
                 Debug.DrawLine(

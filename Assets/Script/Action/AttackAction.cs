@@ -87,6 +87,31 @@ public class AttackAction {
             return false;
         }
     }
+    
+    private bool InAttackRange(){
+        var pos2Target = _attackTarget.transform.position - 
+            transform.position;
+        var sqrAttackRange = _attackRange * _attackRange;
+        var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
+
+        var botRadius = 0.5f;
+        // var attackAngle = 1.0f;  // TODO:
+        var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
+        var forward = transform.forward;
+        forward.y = 0;
+        var targetDirection = pos2Target;
+        targetDirection.y = 0;
+        var angle = Vector3.Angle(forward, targetDirection);
+        var inAngle = attackAngle >= angle; 
+
+        _debugState.InRange = inRange;
+        _debugState.InAngle = inAngle;
+        return inRange && inAngle;
+    }
+
+//    private bool ValidateAttackEnemy(){
+//        return InAttackRange();
+//    }
 
     private bool ValidateAttacking(){
         try{
@@ -122,25 +147,29 @@ public class AttackAction {
                         break;
                     }
 
-                    var pos2Target = _attackTarget.transform.position - 
-                        transform.position;
-                    var sqrAttackRange = _attackRange * _attackRange;
-                    var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
+//                    var pos2Target = _attackTarget.transform.position - 
+//                        transform.position;
+//                    var sqrAttackRange = _attackRange * _attackRange;
+//                    var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
+//
+//                    var botRadius = 0.5f;
+//                    // var attackAngle = 1.0f;  // TODO:
+//                    var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
+//                    var forward = transform.forward;
+//                    forward.y = 0;
+//                    var targetDirection = pos2Target;
+//                    targetDirection.y = 0;
+//                    var angle = Vector3.Angle(forward, targetDirection);
+//                    var inAngle = attackAngle >= angle; 
+//
+//                    _debugState.InRange = inRange;
+//                    _debugState.InAngle = inAngle;
 
-                    var botRadius = 0.5f;
-                    // var attackAngle = 1.0f;  // TODO:
-                    var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
-                    var forward = transform.forward;
-                    forward.y = 0;
-                    var targetDirection = pos2Target;
-                    targetDirection.y = 0;
-                    var angle = Vector3.Angle(forward, targetDirection);
-                    var inAngle = attackAngle >= angle; 
-
-                    _debugState.InRange = inRange;
-                    _debugState.InAngle = inAngle;
-
-                    if (!(inRange && inAngle)){
+//                    if (!(inRange && inAngle)){
+                    if (!InAttackRange()){
+                        var targetDirection = _attackTarget.transform.position
+                            - transform.position;
+                        targetDirection.y = 0;
                         Bot.TakeGotoAction(
                             _attackTarget.transform.position, _attackRange,
                             targetDirection, 1.0f, true);
@@ -153,6 +182,11 @@ public class AttackAction {
                 {
                     if (!ValidateAttacking()){
                         AttackState = ATTACK_STATE.NoEnemy;
+                        break;
+                    }
+
+                    if (!InAttackRange()){
+                        AttackState = ATTACK_STATE.GotoEnemy;
                         break;
                     }
 

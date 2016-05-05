@@ -313,6 +313,7 @@ public class Bot : Actor {
         var height = _head.localPosition.y;
         if (Mathf.Abs(height - _crouchHeight) <= 0.01f || height < _crouchHeight){
             var characterController = GetComponent<CharacterController>();
+            // cause OnTriggerExit && OnTriggerEnter
             characterController.height = _crouchCharacterControllerHeight;
             characterController.center = _crouchCharacterControllerCenter;
             _head.localPosition = _crouchPosition;
