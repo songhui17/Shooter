@@ -8,13 +8,14 @@ public class MeleeWeapon : Weapon {
         _bulletPrefab = Resources.Load("RayBullet", typeof(GameObject)) as GameObject;
     }
 
-    public override void Attack(){
+    public override bool Attack(){
         Debug.Log("Attack");
         var bullet = Instantiate(_bulletPrefab) as GameObject;
         bullet.transform.position = Muzzle.position;
         bullet.transform.rotation = Muzzle.rotation;
         var script = bullet.GetComponent<RayBullet>();
         script.Fire(Muzzle.position, Muzzle.forward);
+        return true;
     }
     
     public override bool CanHit(GameObject target_){

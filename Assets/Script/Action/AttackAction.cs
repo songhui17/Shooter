@@ -94,7 +94,7 @@ public class AttackAction {
         var sqrAttackRange = attackRange * attackRange;
         var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
 
-        var botRadius = 0.5f;
+        var botRadius = 0.2f;
         // var attackAngle = 1.0f;  // TODO:
         var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
         var forward = transform.forward;

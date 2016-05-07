@@ -9,6 +9,7 @@ public class AutoMotor : MonoBehaviour {
         Auto,
         Manual,
     }
+    public bool EnableManual = false;
 
     private class Snapshot {
         public bool _idle = false;
@@ -129,6 +130,8 @@ public class AutoMotor : MonoBehaviour {
 
 
     void UpdateAuto(){
+        if (!EnableManual) return;
+
         var manualMoving = Input.GetAxis("Horizontal") != 0
                            || Input.GetAxis("Vertical") != 0;
         // var manualRotating = Input.GetAxis("Mouse X") > 0
@@ -189,7 +192,6 @@ public class AutoMotor : MonoBehaviour {
             default:
                 throw new Exception("Invalid MovementState: " + MovementState);
         }
-
     }
 
     void Update(){
