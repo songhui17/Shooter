@@ -11,16 +11,6 @@ public class Bot : Actor {
 
     private const string idle = "idle";
 
-    private TaskPlanner _taskPlanner;
-    public TaskPlanner TaskPlanner {
-        get { return _taskPlanner ?? (_taskPlanner = GetComponent<TaskPlanner>()); }
-    }
-
-    public string _patrolStatus {
-        get { return TaskPlanner._patrolStatus; }
-        set { TaskPlanner._patrolStatus = value; }
-    }
-
     #endregion
 
     #region Properties
@@ -65,9 +55,28 @@ public class Bot : Actor {
         }
     }
 
+    [SerializeField]
     private Sensor _sensor;
     public Sensor Sensor {
-        get { return _sensor ?? (_sensor = GetComponent<Sensor>()); }
+        get {
+            if (_sensor != null) return _sensor;
+
+            _sensor = GetComponent<Sensor>();
+            if (_sensor != null) return _sensor;
+
+            Debug.Assert(false, "Sensor is not attached");
+            return null;
+        }
+    }
+
+    private TaskPlanner _taskPlanner;
+    public TaskPlanner TaskPlanner {
+        get { return _taskPlanner ?? (_taskPlanner = GetComponent<TaskPlanner>()); }
+    }
+
+    public string _patrolStatus {
+        get { return TaskPlanner._patrolStatus; }
+        set { TaskPlanner._patrolStatus = value; }
     }
 
     #endregion
@@ -118,13 +127,12 @@ public class Bot : Actor {
                 }
                 break;
             case "jump":
-//                if (UpdateJump()){
-//                    // TODO: handle next status other than idle
-//                    if (_verbose)
-//                        Debug.Log("jump action is done.");
-//
-//                    status = idle;
-//                }
+                // if (UpdateJump()){
+                    // // TODO: handle next status other than idle
+                    // if (_verbose)
+                        // Debug.Log("jump action is done.");
+                    // status = idle;
+                // }
                 break;
             case "crouch":
                 if (UpdateCrouch()){
@@ -149,9 +157,18 @@ public class Bot : Actor {
                 break;
         }
         Profiler.EndSample();
-
     }
     
+    void ApplyDamage(int damage_){
+        Debug.Log("I got hit damage_: " + damage_);
+        HP--;
+        if (HP <= 0)
+        {
+            Destroy(gameObject);
+            HP = 0;
+        }
+    }
+
     #region Action Methods
 
     private void EnterIdle(){
@@ -288,6 +305,7 @@ public class Bot : Actor {
 
     private Vector3 _crouchPosition;
     private Vector3 _standPosition;
+    [HideInInspector]
     public bool _botCrouched = false;
     private void EnterCrouch(){
         if (_verbose)

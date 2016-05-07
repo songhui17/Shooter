@@ -2,23 +2,24 @@ using UnityEngine;
 
 public class RayWeapon : Weapon {
     private GameObject _bulletPrefab;
+    public Transform Muzzle;
+
     void Start(){
         _bulletPrefab = Resources.Load("RayBullet", typeof(GameObject)) as GameObject;
     }
+
     public override void Attack(){
         Debug.Log("Attack");
-//        var bullet = new GameObject("RayBullet");
         var bullet = Instantiate(_bulletPrefab) as GameObject;
-        bullet.transform.position = transform.position;
-        bullet.transform.rotation = transform.rotation;
-        // var script = bullet.AddComponent<RayBullet>();
+        bullet.transform.position = Muzzle.position;
+        bullet.transform.rotation = Muzzle.rotation;
         var script = bullet.GetComponent<RayBullet>();
-        script.Fire(transform.position, transform.forward);
+        script.Fire(Muzzle.position, Muzzle.forward);
     }
 
-    public bool CanHit(GameObject target_){
+    public override bool CanHit(GameObject target_){
         var _startPosition = transform.position;
-        var _direction = target_.transform.position - transform.position;
+        var _direction = target_.transform.position - Muzzle.position;
         _direction.y = 0;
 
         RaycastHit hit;

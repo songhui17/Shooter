@@ -101,7 +101,7 @@ public class AutoMotor : MonoBehaviour {
         set { _sqrStoppingDistance = value; }
     }
 
-    private bool _forceStopMoving = true;
+    // private bool _forceStopMoving = true;
 
     private bool _forceDirection = false;
     private Vector3 _targetDirection;
@@ -210,11 +210,19 @@ public class AutoMotor : MonoBehaviour {
         }
     }
 
+    private enum AVOID_MODE {
+        Normal,
+        Avoid,
+    }
+    private AVOID_MODE _avoidMode = AVOID_MODE.Normal;
+    private float _rotateAngle = 90;
+
     void FixedUpdate(){
         if (_idle) return;
 
         var position = transform.position;
         var vec2Target = _targetPosition - position;
+        vec2Target.y = 0;
         var sqrMagnitude = vec2Target.sqrMagnitude;
         var inRange =  sqrMagnitude <= SqrStoppingDistance;
 
@@ -228,17 +236,109 @@ public class AutoMotor : MonoBehaviour {
             var speed = _speed;
             var rotateSpeed = _rotateSpeed;
 
+            var targetDirection = _targetDirection;
+
             var normalized = vec2Target.normalized;
-            if (!inRange)
-                _controller.Move(normalized * speed * Time.deltaTime);
-            else if (!_forceStopMoving)
-                _controller.Move(normalized * speed * Time.deltaTime);
+            if (!inRange) {
+                switch (_avoidMode){
+                    case AVOID_MODE.Normal:
+                        {
+                            var prePosition = transform.position;
+                            var movement = normalized * speed * Time.deltaTime;
+                            _controller.Move(movement);
+                            var afterPosition = transform.position;
+
+                            movement.y = 0;
+                            var actualMovement = afterPosition - prePosition;
+                            actualMovement.y = 0;
+                            var delta = movement - actualMovement;
+                            if (delta.sqrMagnitude / movement.sqrMagnitude > 0.04f){
+                                if ((_controller.collisionFlags & CollisionFlags.Sides) != 0){
+                                    // radius!
+                                    // rotate ccw | cw
+                                    var cross = Vector3.Cross(movement, actualMovement);
+                                    var rotateAngle = 0;
+                                    if (cross.y > 0){
+                                        rotateAngle = 90;
+                                    }else{
+                                        rotateAngle = -90;
+                                    }
+                                    var colliders = Physics.OverlapSphere(_targetPosition, 2.0f, (1<<LayerMask.NameToLayer("Bot")));
+                                    if (colliders.Length > 0){
+                                        var center = Vector3.zero;
+                                        foreach ( var collider_ in colliders){
+                                            center += collider_.transform.position;
+                                        }
+                                        center /= colliders.Length;
+                                        var vec2Center = center - transform.position;
+                                        vec2Center.y = 0;
+                                        cross = Vector3.Cross(vec2Target, vec2Center);
+                                        if (cross.y > 0){
+                                            rotateAngle = -90;
+                                        }else{
+                                            rotateAngle = 90;
+                                        }
+                                    }
+                                    _rotateAngle = rotateAngle;
+                                    var matrix = Matrix4x4.TRS(Vector3.zero,
+                                            Quaternion.Euler(0, rotateAngle, 0), Vector3.one); 
+                                    var rotatedDirection = matrix.MultiplyVector(vec2Target);
+                                    rotatedDirection.Normalize();
+                                    Debug.DrawRay(transform.position, rotatedDirection, Color.black);
+                                   
+                                    var additional = (delta).magnitude * rotatedDirection; 
+                                    Debug.DrawRay(transform.position + Vector3.up, additional / Time.deltaTime, Color.gray);
+                                    _controller.Move(additional);
+                                    targetDirection = transform.position - prePosition;
+                                    targetDirection.y = 0;
+                                    _avoidMode = AVOID_MODE.Avoid;
+                                }
+                            }
+                        }
+                        break;
+                    case AVOID_MODE.Avoid:
+                        {
+                            var prePosition = transform.position;
+                            var movement = normalized * speed * Time.deltaTime;
+                            _controller.Move(movement);
+                            var afterPosition = transform.position;
+
+                            movement.y = 0;
+                            var actualMovement = afterPosition - prePosition;
+                            actualMovement.y = 0;
+                            var delta = movement - actualMovement;
+                            if (delta.sqrMagnitude / movement.sqrMagnitude > 0.04f){
+                                if ((_controller.collisionFlags & CollisionFlags.Sides) != 0){
+                                    var rotateAngle = _rotateAngle;
+                                    var matrix = Matrix4x4.TRS(Vector3.zero,
+                                            Quaternion.Euler(0, rotateAngle, 0), Vector3.one); 
+                                    var rotatedDirection = matrix.MultiplyVector(vec2Target);
+                                    rotatedDirection.Normalize();
+                                    Debug.DrawRay(transform.position, rotatedDirection, Color.black);
+                                   
+                                    var additional = (delta).magnitude * rotatedDirection; 
+                                    Debug.DrawRay(transform.position + Vector3.up, additional / Time.deltaTime, Color.gray);
+                                    _controller.Move(additional);
+                                    targetDirection = transform.position - prePosition;
+                                    targetDirection.y = 0;
+                                }
+                            }else{
+                                _avoidMode = AVOID_MODE.Normal;
+                            }
+                        }
+                        break;
+                    default:
+                        throw new Exception("Invalid _avoidMode: " + _avoidMode);
+                }
+            }
+            // else if (!_forceStopMoving)
+                // _controller.Move(normalized * speed * Time.deltaTime);
 
             if (!inAngle){
                 var deltaAngle = _rotateSpeed * Time.deltaTime;
                 deltaAngle *= Mathf.Deg2Rad;
                 var newDirection = Vector3.RotateTowards(
-                    forward, _targetDirection, deltaAngle, 0);
+                    forward, targetDirection, deltaAngle, 0);
                 transform.rotation = Quaternion.LookRotation(newDirection, Vector3.up);
             }
             else if (_jumpDirection){
@@ -256,6 +356,9 @@ public class AutoMotor : MonoBehaviour {
             Debug.Log(info);
             OnMovementDone();
         }
+
+        Debug.DrawRay(transform.position, transform.forward, Color.blue);
+        Debug.DrawRay(transform.position, transform.right, Color.red);
     }
 
     private void UpdateMovement(bool inRange_, bool inAngle_){
@@ -264,6 +367,7 @@ public class AutoMotor : MonoBehaviour {
         _targetPosition = position_;
         SqrStoppingDistance = stoppingDistance_ * stoppingDistance_;
         _idle = false;
+        _avoidMode = AVOID_MODE.Normal;
 
         _forceDirection = false;
     }

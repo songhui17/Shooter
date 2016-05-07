@@ -37,6 +37,7 @@ public class RayBullet : MonoBehaviour {
     void OnTriggerEnter(Collider hit_){
         Debug.Log("hit: " + hit_);
         hit_.SendMessage("ApplyDamage", 1, SendMessageOptions.DontRequireReceiver);
+        Destroy(gameObject);
     }
 
     public void Fire(Vector3 position_, Vector3 direction_){

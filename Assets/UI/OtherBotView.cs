@@ -10,7 +10,7 @@ public class OtherBotView : ViewBase {
     private Slider _hpSlider;
 
     [SerializeField]
-    private MainTankBot _bot;
+    private Bot _bot;
     
     void Awake(){
         DataContext = _bot;

@@ -39,15 +39,13 @@ public class AttackAction {
     private Transform transform { get { return Bot.transform; } }
     private Sensor Sensor { get { return Bot.Sensor; } }
 
-    private float _attackRange = 12.0f;
-
     private bool ValidateTarget(GameObject attackTarget_){
         if (attackTarget_ == null) return false;
 
-        var weapon = Bot.Weapon as RayWeapon;
-        bool canHit = weapon.CanHit(attackTarget_);
-        _debugState.CanHit = canHit;
-        if (!canHit) return false;
+        // var weapon = Bot.Weapon;
+        // bool canHit = weapon != null && weapon.CanHit(attackTarget_);
+        // _debugState.CanHit = canHit;
+        // if (!canHit) return false;
 
         var actor = attackTarget_.GetComponent<Actor>();
         _debugState.IsAlive = actor.IsAlive;
@@ -65,6 +63,9 @@ public class AttackAction {
 
             try{
                 if (!ValidateTarget(target)) continue;
+                // var actor = target.GetComponent<Actor>();
+                // _debugState.IsAlive = actor.IsAlive;
+                // if (!actor.IsAlive){ continue; }
             }catch(MissingReferenceException){
                 continue;
             }
@@ -75,8 +76,6 @@ public class AttackAction {
                 _attackTarget = target;
             }
         }
-//        Debug.Log(string.Format("_attackTarget: {0}, minDistance: {1}",
-//                   _attackTarget != null ? _attackTarget.ToString() : "null", minDistance));
     }
 
     private bool ValidateGotoEnemy(){
@@ -91,7 +90,8 @@ public class AttackAction {
     private bool InAttackRange(){
         var pos2Target = _attackTarget.transform.position - 
             transform.position;
-        var sqrAttackRange = _attackRange * _attackRange;
+        var attackRange = Bot.Weapon.AttackRange;
+        var sqrAttackRange = attackRange * attackRange;
         var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
 
         var botRadius = 0.5f;
@@ -147,31 +147,13 @@ public class AttackAction {
                         break;
                     }
 
-//                    var pos2Target = _attackTarget.transform.position - 
-//                        transform.position;
-//                    var sqrAttackRange = _attackRange * _attackRange;
-//                    var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
-//
-//                    var botRadius = 0.5f;
-//                    // var attackAngle = 1.0f;  // TODO:
-//                    var attackAngle = Mathf.Asin(botRadius / pos2Target.magnitude) * Mathf.Rad2Deg;
-//                    var forward = transform.forward;
-//                    forward.y = 0;
-//                    var targetDirection = pos2Target;
-//                    targetDirection.y = 0;
-//                    var angle = Vector3.Angle(forward, targetDirection);
-//                    var inAngle = attackAngle >= angle; 
-//
-//                    _debugState.InRange = inRange;
-//                    _debugState.InAngle = inAngle;
-
-//                    if (!(inRange && inAngle)){
                     if (!InAttackRange()){
                         var targetDirection = _attackTarget.transform.position
                             - transform.position;
                         targetDirection.y = 0;
+                        var attackRange = Bot.Weapon.AttackRange;
                         Bot.TakeGotoAction(
-                            _attackTarget.transform.position, _attackRange,
+                            _attackTarget.transform.position, attackRange,
                             targetDirection, 1.0f, true);
                     }else{
                         AttackState = ATTACK_STATE.Attacking;
