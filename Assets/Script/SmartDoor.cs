@@ -11,6 +11,22 @@ public class SmartDoor : MonoBehaviour {
         }
     }
 
+    [SerializeField]
+    private GameObject _hintCanvas;
+    private bool _showHint = false;
+    private bool ShowHint {
+        set {
+            _showHint = value;
+            if (_hintCanvas != null) {
+                _hintCanvas.SetActive(_showHint);
+            }
+        }
+    }
+    
+    void Awake(){
+        ShowHint = false;
+    }
+
     void OnCollisionEnter(Collision collision_){
         Debug.Log(string.Format(
                     "OnCollisionEnter collision_.gameObject: {0}",
@@ -22,6 +38,8 @@ public class SmartDoor : MonoBehaviour {
         collision_.gameObject.SendMessage(
                 "ReceiveSmartObject", gameObject,
                 SendMessageOptions.DontRequireReceiver);
+
+        ShowHint = true;
     }
 
     void OnTriggerEnter(Collider collider_){
@@ -32,6 +50,10 @@ public class SmartDoor : MonoBehaviour {
         collider_.gameObject.SendMessage(
                 "ReceiveSmartObject", gameObject,
                 SendMessageOptions.DontRequireReceiver);
+
+        if (!Opened) {
+            ShowHint = true;
+        }
     }
 
     void OnTriggerExit(Collider collider_){
@@ -42,9 +64,12 @@ public class SmartDoor : MonoBehaviour {
         collider_.gameObject.SendMessage(
                 "LeaveSmartObject", gameObject,
                 SendMessageOptions.DontRequireReceiver);
+
+        ShowHint = false;
     }
 
     void Trigger(){
         _animator.SetBool("open", true);
+        ShowHint = false;
     }
 }

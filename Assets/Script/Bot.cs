@@ -11,6 +11,9 @@ public class Bot : Actor {
 
     private const string idle = "idle";
 
+    [SerializeField]
+    private Animator _animator;
+
     #endregion
 
     #region Properties
@@ -208,6 +211,10 @@ public class Bot : Actor {
             Motor.SetDestination(
                 _gotoTargetPosition, _gotoTargetDirection,
                 _gotoStoppingDistance, _gotoStoppingAngle);
+        
+        if (_animator != null) {
+            _animator.SetFloat("Speed", 1);
+        }
         return true;
     }
 
@@ -224,7 +231,12 @@ public class Bot : Actor {
             _gotoDoneReason = "MotorInterrupted";
             _gotoDone = true;
         }
+
         // TODO: handle longlong exit
+
+        if (_animator != null) {
+            _animator.SetFloat("Speed", 0);
+        }
     }
 
     private void OnMovementDone(object reason_){
@@ -246,6 +258,10 @@ public class Bot : Actor {
         if (_weapon == null) return false;
         _lastShootTime = Time.realtimeSinceStartup;
         _weapon.Attack();
+
+        if (_animator != null) {
+            _animator.SetTrigger("Attack");
+        }
         return true;
     }
 

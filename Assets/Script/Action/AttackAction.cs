@@ -22,12 +22,17 @@ public class AttackAction {
         public bool InAngle;
         public bool IsAlive;
 
+        public float SqrDistance;
+        public float Angle;
+
         public void Reset (){
             DetectEnemy = false;
             CanHit = false;
             InRange = false;
             InAngle = false;
             IsAlive = false;
+            SqrDistance = 0;
+            Angle = 0;
         }
     }
     private AttackDebugState _debugState = new AttackDebugState();
@@ -90,6 +95,7 @@ public class AttackAction {
     private bool InAttackRange(){
         var pos2Target = _attackTarget.transform.position - 
             transform.position;
+        pos2Target.y = 0;
         var attackRange = Bot.Weapon.AttackRange;
         var sqrAttackRange = attackRange * attackRange;
         var inRange = sqrAttackRange >= pos2Target.sqrMagnitude; 
@@ -106,6 +112,8 @@ public class AttackAction {
 
         _debugState.InRange = inRange;
         _debugState.InAngle = inAngle;
+        _debugState.SqrDistance = pos2Target.sqrMagnitude;
+        _debugState.Angle = angle;
         return inRange && inAngle;
     }
 
@@ -153,7 +161,7 @@ public class AttackAction {
                         targetDirection.y = 0;
                         var attackRange = Bot.Weapon.AttackRange;
                         Bot.TakeGotoAction(
-                            _attackTarget.transform.position, attackRange,
+                            _attackTarget.transform.position, attackRange - 0.1f,
                             targetDirection, 1.0f, true);
                     }else{
                         AttackState = ATTACK_STATE.Attacking;

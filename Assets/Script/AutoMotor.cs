@@ -90,6 +90,9 @@ public class AutoMotor : MonoBehaviour {
     [SerializeField]
     private float _rotateSpeed = 40.0f;
 
+    [SerializeField]
+    private Transform _headTransform;
+
     private bool _idle = true;
     public bool IsMoving { get { return !_idle; } }
     private Vector3 _targetPosition;
@@ -114,7 +117,6 @@ public class AutoMotor : MonoBehaviour {
     // TODO: wrong
     private bool _jumpDirection = true;
 
-    [SerializeField]
     private CharacterController _controller;
 
     void Start(){
@@ -159,8 +161,29 @@ public class AutoMotor : MonoBehaviour {
                     }
 
                     var rotateY = Input.GetAxis("Mouse X");
-                    // var rotateZ = Input.GetAxis("Mouse Y");
                     transform.Rotate(Vector3.up, rotateY * _rotateSpeed * Time.deltaTime, Space.World);
+
+                    if (_headTransform != null) {
+                        var rotateX = Input.GetAxis("Mouse Y");
+                        rotateX *= -_rotateSpeed * Time.deltaTime;
+                        // _headTransform.Rotate(Vector3.right, rotateX);  // TODO: why changing Y and Z
+                        _headTransform.Rotate(new Vector3(rotateX, 0, 0)); // OR ->
+                        // _headTransform.localRotation = Quaternion.Euler(rotateX, 0, 0) * _headTransform.localRotation;
+                        // clamp
+                        var localEuler = _headTransform.localRotation.eulerAngles;
+                        var curLocalX = localEuler.x;
+                        curLocalX = curLocalX % 360;
+
+                        var maxX = 80;  // down
+                        var minX = -80;  // up
+                        if (curLocalX > 180) {
+                            curLocalX -= 360;
+                        }
+
+                        if (curLocalX < minX) curLocalX = minX;
+                        if (curLocalX > maxX) curLocalX = maxX;
+                        _headTransform.localRotation = Quaternion.Euler(curLocalX, 0, 0);
+                    }
 
                     var jumpButton = Input.GetButton("Jump");
                     var jump = jumpButton || !_controller.isGrounded;
@@ -215,7 +238,11 @@ public class AutoMotor : MonoBehaviour {
     private enum AVOID_MODE {
         Normal,
         Avoid,
+        Stuck,
     }
+    private float _avoidStartTime = 0;
+    private float _avoidTimeout = 1.0f;
+
     private AVOID_MODE _avoidMode = AVOID_MODE.Normal;
     private float _rotateAngle = 90;
 
@@ -254,7 +281,7 @@ public class AutoMotor : MonoBehaviour {
                             var actualMovement = afterPosition - prePosition;
                             actualMovement.y = 0;
                             var delta = movement - actualMovement;
-                            if (delta.sqrMagnitude / movement.sqrMagnitude > 0.04f){
+                            if (delta.sqrMagnitude / movement.sqrMagnitude > 0.25f){
                                 if ((_controller.collisionFlags & CollisionFlags.Sides) != 0){
                                     // radius!
                                     // rotate ccw | cw
@@ -294,6 +321,7 @@ public class AutoMotor : MonoBehaviour {
                                     targetDirection = transform.position - prePosition;
                                     targetDirection.y = 0;
                                     _avoidMode = AVOID_MODE.Avoid;
+                                    _avoidStartTime = Time.realtimeSinceStartup;
                                 }
                             }
                         }
@@ -309,7 +337,7 @@ public class AutoMotor : MonoBehaviour {
                             var actualMovement = afterPosition - prePosition;
                             actualMovement.y = 0;
                             var delta = movement - actualMovement;
-                            if (delta.sqrMagnitude / movement.sqrMagnitude > 0.04f){
+                            if (delta.sqrMagnitude / movement.sqrMagnitude > 0.25f){
                                 if ((_controller.collisionFlags & CollisionFlags.Sides) != 0){
                                     var rotateAngle = _rotateAngle;
                                     var matrix = Matrix4x4.TRS(Vector3.zero,
@@ -325,6 +353,40 @@ public class AutoMotor : MonoBehaviour {
                                     targetDirection.y = 0;
                                 }
                             }else{
+                                _avoidMode = AVOID_MODE.Normal;
+                            }
+
+
+                            afterPosition = transform.position;
+                            movement.y = 0;
+                            actualMovement = afterPosition - prePosition;
+                            actualMovement.y = 0;
+                            delta = movement - actualMovement;
+                            if (delta.sqrMagnitude / movement.sqrMagnitude > 0.81){
+                                if (Time.realtimeSinceStartup - _avoidStartTime > _avoidTimeout) {
+                                    var info = "Stuck:\n";
+                                    info += string.Format("{0}: {1}\n",
+                                            "delta.sqrMagnitude", delta.sqrMagnitude);
+                                    info += string.Format("{0}: {1}\n",
+                                            "movement.sqrMagnitude", movement.sqrMagnitude);
+                                    Debug.LogWarning(info);
+                                    _avoidMode = AVOID_MODE.Stuck;
+                                }
+                            }
+                        }
+                        break;
+                    case AVOID_MODE.Stuck:
+                        {
+                            var prePosition = transform.position;
+                            var movement = normalized * speed * Time.deltaTime;
+                            _controller.Move(movement);
+                            var afterPosition = transform.position;
+
+                            movement.y = 0;
+                            var actualMovement = afterPosition - prePosition;
+                            actualMovement.y = 0;
+                            var delta = movement - actualMovement;
+                            if (delta.sqrMagnitude / movement.sqrMagnitude <= 0.25f){
                                 _avoidMode = AVOID_MODE.Normal;
                             }
                         }
