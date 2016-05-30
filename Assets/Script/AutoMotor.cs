@@ -28,6 +28,7 @@ public class AutoMotor : MonoBehaviour {
     }
     private Snapshot _lastState;
 
+    [SerializeField]
     private CONTROL_TYPE _controlType = CONTROL_TYPE.Auto;
     private CONTROL_TYPE ControlType {
         get { return _controlType; }
