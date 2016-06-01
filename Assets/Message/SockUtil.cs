@@ -33,52 +33,124 @@ public class SockUtil : MonoBehaviour {
         }
     }
 
+    enum ENUM_CONNECTION_STATE {
+        Idle,
+        Connecting,
+        Logining,
+        Connected,
+        Failed,
+    }
+
+    private ENUM_CONNECTION_STATE _connectionState = ENUM_CONNECTION_STATE.Idle;
+
+    public bool IsConnected {
+        get { return _connectionState == ENUM_CONNECTION_STATE.Connected; }
+    }
+    public bool IsDisconnected {
+        get { return _connectionState == ENUM_CONNECTION_STATE.Failed; }
+    }
+
     // private SockUtil() {
     void Awake() {
         DontDestroyOnLoad(gameObject);
 
         _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        _socket.Connect("127.0.0.1", 10240);
+        _socket.Blocking = false;
+    }
+
+    void OnDestroy() {
+        if (_socket != null) {
+            _socket.Close();
+        }
+    }
+
+    public void ConnectToServer() {
+        if (_socket == null) {
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket.Blocking = false;
+        }
+
+        try{
+            Debug.Log("Connect to...");
+            _socket.Connect("127.0.0.1", 10240);
+        }catch (SocketException ex){
+            Debug.Log(ex);
+            if (ex.ErrorCode == 10035 || ex.ErrorCode == 10056) {
+                // block or connected
+            }
+            else {
+                Debug.Log("Failed to connect, reconnect"
+                          + "in 5 secs, errcode: " + ex.ErrorCode);
+                _connectionState = ENUM_CONNECTION_STATE.Failed;
+            }
+        }
+        _connectionState = ENUM_CONNECTION_STATE.Connecting;
     }
 
     void Update() {
-        if (_socket == null) return;
-
-        var readlist = new List<Socket>() { _socket };
-        Socket.Select(readlist, null, null, 0);
-        if (readlist.Count == 1) {
-            var n = _socket.Receive(_readBuffer, _readIndex, (_readBuffer.Length - _readIndex), SocketFlags.None);
-            if (n == 0){
-                Debug.Log("Socket closed");
-            }else{
-                _readIndex += n;
-                if (_readIndex >= 2){
-                    var index = 0;
-                    var length = ReadByte128(_readBuffer, ref index);
-                    if (length <= (_readIndex - 2)) {
-                        // index = 0;
-                        var handler = ReadString(_readBuffer, ref index);
-                        var info = "Receive:\n";
-                        info += "handler: " + handler + "\n";
-                        var message = Encoding.UTF8.GetString(_readBuffer, index, (length - index + 2));
-
-                        Array.Copy(_readBuffer, index, _swapBuffer, 0, (_readIndex - index));
-                        var tmp = _swapBuffer;
-                        _swapBuffer = _readBuffer;
-                        _readBuffer = tmp;
-                        _readIndex -= index;
-
-                        info += "message.Length: " + message.Length + "\n";
-                        info += "message: " + message + "\n";
-                        Debug.Log(info);
-
-                        _socket.Close();
-                        _socket = null;
-
-                        RecvMessage(handler, message);
+        switch (_connectionState) {
+            case ENUM_CONNECTION_STATE.Idle:
+                {
+                }
+                break;
+            case ENUM_CONNECTION_STATE.Connecting:
+                {
+                    if (_socket.Poll(-1, SelectMode.SelectWrite)) {
+                        Debug.Log(string.Format(
+                            "Connected {0} -> {1}\n", _connectionState,
+                            ENUM_CONNECTION_STATE.Connected));
+                        _connectionState = ENUM_CONNECTION_STATE.Connected;
+                        // _socket.Close();
+                        // _socket = null;
+                        // _connectionState = ENUM_CONNECTION_STATE.Failed;
+                    }else if(_socket.Poll(-1, SelectMode.SelectError)) {
+                        Debug.Log("Failed to connect, reconnect in 5 secs");
+                        _connectionState = ENUM_CONNECTION_STATE.Failed;
                     }
                 }
-            }
+                break;
+            case ENUM_CONNECTION_STATE.Connected:
+                {
+                    var readlist = new List<Socket>() { _socket };
+                    Socket.Select(readlist, null, null, 0);
+                    if (readlist.Count == 1) {
+                        var n = _socket.Receive(_readBuffer, _readIndex, (_readBuffer.Length - _readIndex), SocketFlags.None);
+                        if (n == 0){
+                            Debug.Log("Socket closed");
+                        }else{
+                            _readIndex += n;
+                            if (_readIndex >= 2){
+                                var index = 0;
+                                var length = ReadByte128(_readBuffer, ref index);
+                                if (length <= (_readIndex - 2)) {
+                                    // index = 0;
+                                    var handler = ReadString(_readBuffer, ref index);
+                                    var info = "Receive:\n";
+                                    info += "handler: " + handler + "\n";
+                                    var message = Encoding.UTF8.GetString(_readBuffer, index, (length - index + 2));
+
+                                    Array.Copy(_readBuffer, index, _swapBuffer, 0, (_readIndex - index));
+                                    var tmp = _swapBuffer;
+                                    _swapBuffer = _readBuffer;
+                                    _readBuffer = tmp;
+                                    _readIndex -= index;
+
+                                    info += "message.Length: " + message.Length + "\n";
+                                    info += "message: " + message + "\n";
+                                    Debug.Log(info);
+
+                                    // _socket.Close();
+                                    // _socket = null;
+
+                                    RecvMessage(handler, message);
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
         }
     }
 
