@@ -45,6 +45,7 @@ public class LoadingView : ViewBase {
     private GameObject _startFightPanel;
     [SerializeField]
     private Text _startFightTitleText;
+
     [SerializeField]
     private List<Text> _startFightTaskListText;
     

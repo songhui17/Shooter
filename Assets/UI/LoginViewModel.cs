@@ -2,7 +2,21 @@ using UnityEngine;
 using System.Collections;
 using Shooter;
 
+
+public enum ENUM_LOGIN_STATE {
+    Idle,
+    Connecting,
+    Logining,
+    ConnectFailed,
+    LoginSuccess,
+    LoginFailed,
+}
+
 public class LoginViewModel : ViewModelBase {
+    public static LoginViewModel Instance {
+        get; private set;
+    }
+
     private string _account;
     public string Account {
         get { return _account ?? (_account = ""); }
@@ -29,10 +43,10 @@ public class LoginViewModel : ViewModelBase {
         set { _showStatusPanel = value; OnPropertyChanged("ShowStatusPanel"); }
     }
 
-    private string _message;
-    public string Message {
-        get { return _message ?? (_message = ""); }
-        set { _message = value; OnPropertyChanged("Message"); }
+    private ENUM_LOGIN_STATE _state = ENUM_LOGIN_STATE.Idle;
+    public ENUM_LOGIN_STATE State {
+        get { return _state; }
+        set { _state = value; OnPropertyChanged("State"); }
     }
 
     private bool _isSendingLogin = false;
@@ -55,7 +69,7 @@ public class LoginViewModel : ViewModelBase {
         var waitForSeconds = new WaitForSeconds(0.5f);
         ShowStatusPanel = true;
         if (!SockUtil.Instance.IsConnected) {
-            Message = "正在连接服务器...";
+            State = ENUM_LOGIN_STATE.Connecting;
             SockUtil.Instance.ConnectToServer();
         }
         while (true) {
@@ -63,18 +77,19 @@ public class LoginViewModel : ViewModelBase {
             yield return waitForSeconds;
             if (SockUtil.Instance.IsConnected) {
                 Debug.Log("Send LoginRequest");
-                Message = "正在登录帐号...";
+                State = ENUM_LOGIN_STATE.Logining;
                 SockUtil.Instance.SendRequest<LoginRequest, LoginRequestResponse>(
-                    null, new LoginRequest() {
+                    "login", new LoginRequest() {
                         username = Account,
                         password = Password,
                     }, OnLogin);
                 break;
-            } else if (SockUtil.Instance.IsDisconnected) {
+            } else if (SockUtil.Instance.IsConnectFailed) {
                 Debug.Log("Failed to Connect");
-                Message = "帐号登录失败";
+                State = ENUM_LOGIN_STATE.ConnectFailed;
                 _isSendingLogin = false;
-                ShowStatusPanel = false;
+                // ShowStatusPanel = false;
+                // ShowLoginPanel = true;
                 SavePlayerPrefs(false);
                 break;
             }
@@ -85,16 +100,30 @@ public class LoginViewModel : ViewModelBase {
         Debug.Log(response_);
         _isSendingLogin = false;
         if (response_.errno == 0) {
-            Message = "帐号登录成功";
+            State = ENUM_LOGIN_STATE.LoginSuccess;
             ShowStatusPanel = false;
             ShowLoginPanel = false;
             SavePlayerPrefs(true);
 
             OnPropertyChanged("Welcome");
+        }else{
+            State = ENUM_LOGIN_STATE.LoginFailed;
+            ShowStatusPanel = false;
+            ShowLoginPanel = true;
+            SavePlayerPrefs(false);
         }
     }
 
     void Start() {
+        if (Instance != null) {
+            enabled = false;
+            Destroy(gameObject);
+            Debug.LogWarning("Multiple instance of LoginViewModel");
+            return;
+        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
         Account = PlayerPrefs.GetString("Account");
         Password = PlayerPrefs.GetString("Password");
         var validAccount = PlayerPrefs.GetInt("ValidAccount", 0) == 1;

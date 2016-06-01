@@ -1,8 +1,17 @@
-namespace Shooter {
-[System.Serializable]
-public class LoginRequest
+using System;
+using System.Collections.Generic;
+
+namespace Shooter
 {
-    public string username;
-    public string password;
-}
+    [Serializable]
+    public class LoginRequest {
+        public string username; 
+        public string password; 
+        public override string ToString() {
+            var info = "";
+            info += "<b>username</b>:" + username + "\n";
+            info += "<b>password</b>:" + password + "\n";
+            return info;
+        }
+    }
 }

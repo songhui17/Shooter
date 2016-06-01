@@ -2,16 +2,17 @@ using UnityEngine;
 using System;
 using System.Text;
 using System.Net.Sockets;
+using System.Collections;
 using System.Collections.Generic;
 
 using Shooter;
 
-[System.Serializable]
-public class _LoginRequestResponse {
-    public string handler;
-    public string type;
-    public int request_id;
-    public LoginRequestResponse response;
+public enum ENUM_CONNECTION_STATE {
+    Idle,
+    Connecting,
+    Logining,
+    Connected,
+    Failed,
 }
 
 public class SockUtil : MonoBehaviour {
@@ -33,20 +34,13 @@ public class SockUtil : MonoBehaviour {
         }
     }
 
-    enum ENUM_CONNECTION_STATE {
-        Idle,
-        Connecting,
-        Logining,
-        Connected,
-        Failed,
-    }
-
     private ENUM_CONNECTION_STATE _connectionState = ENUM_CONNECTION_STATE.Idle;
 
     public bool IsConnected {
         get { return _connectionState == ENUM_CONNECTION_STATE.Connected; }
     }
-    public bool IsDisconnected {
+
+    public bool IsConnectFailed {
         get { return _connectionState == ENUM_CONNECTION_STATE.Failed; }
     }
 
@@ -64,19 +58,19 @@ public class SockUtil : MonoBehaviour {
         }
     }
 
-    public void ConnectToServer() {
-        if (_socket == null) {
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _socket.Blocking = false;
-        }
+
+    IEnumerator DelayedConnectToServer() {
+        yield return null;
 
         try{
             Debug.Log("Connect to...");
             _socket.Connect("127.0.0.1", 10240);
+            _connectionState = ENUM_CONNECTION_STATE.Connecting;
         }catch (SocketException ex){
             Debug.Log(ex);
             if (ex.ErrorCode == 10035 || ex.ErrorCode == 10056) {
                 // block or connected
+                _connectionState = ENUM_CONNECTION_STATE.Connecting;
             }
             else {
                 Debug.Log("Failed to connect, reconnect"
@@ -84,7 +78,31 @@ public class SockUtil : MonoBehaviour {
                 _connectionState = ENUM_CONNECTION_STATE.Failed;
             }
         }
-        _connectionState = ENUM_CONNECTION_STATE.Connecting;
+    }
+
+    public void ConnectToServer() {
+        if (_socket == null) {
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket.Blocking = false;
+        }
+
+        // try{
+        //     // Debug.Log("Connect to...");
+        //     // _socket.Connect("127.0.0.1", 10240);
+        //     // _connectionState = ENUM_CONNECTION_STATE.Connecting;
+        StartCoroutine(DelayedConnectToServer());
+        // }catch (SocketException ex){
+        //     Debug.Log(ex);
+        //     if (ex.ErrorCode == 10035 || ex.ErrorCode == 10056) {
+        //         // block or connected
+        //         _connectionState = ENUM_CONNECTION_STATE.Connecting;
+        //     }
+        //     else {
+        //         Debug.Log("Failed to connect, reconnect"
+        //                   + "in 5 secs, errcode: " + ex.ErrorCode);
+        //         _connectionState = ENUM_CONNECTION_STATE.Failed;
+        //     }
+        // }
     }
 
     void Update() {
@@ -119,7 +137,7 @@ public class SockUtil : MonoBehaviour {
                             Debug.Log("Socket closed");
                         }else{
                             _readIndex += n;
-                            if (_readIndex >= 2){
+                            while (_readIndex >= 2){
                                 var index = 0;
                                 var length = ReadByte128(_readBuffer, ref index);
                                 if (length <= (_readIndex - 2)) {
@@ -128,6 +146,8 @@ public class SockUtil : MonoBehaviour {
                                     var info = "Receive:\n";
                                     info += "handler: " + handler + "\n";
                                     var message = Encoding.UTF8.GetString(_readBuffer, index, (length - index + 2));
+
+                                    index = length + 2;
 
                                     Array.Copy(_readBuffer, index, _swapBuffer, 0, (_readIndex - index));
                                     var tmp = _swapBuffer;
@@ -143,6 +163,8 @@ public class SockUtil : MonoBehaviour {
                                     // _socket = null;
 
                                     RecvMessage(handler, message);
+                                } else {
+                                    break;
                                 }
                             }
                         }
@@ -155,11 +177,11 @@ public class SockUtil : MonoBehaviour {
     }
 
     private void RecvMessage(string handler_, string payload_) {
-        if (handler_ == "login_request_response") {
-            var loginResponse = JsonUtility.FromJson<_LoginRequestResponse>(payload_) as _LoginRequestResponse;
-            var requestId = loginResponse.request_id;
+        int requestId = -1;
+        var response = ResponseDeserializer.Deserialize(handler_, payload_, out requestId);
+        if (response != null) {
             if (_callbackMap.ContainsKey(requestId)) {
-                _callbackMap[requestId].RecvMessage(loginResponse.response);
+                _callbackMap[requestId].RecvMessage(response);
                 _callbackMap.Remove(requestId);
             }
         }
@@ -217,24 +239,33 @@ public class SockUtil : MonoBehaviour {
     }
 
     private Dictionary<int, IReponseHandler> _callbackMap = new Dictionary<int, IReponseHandler>();
-    public void SendRequest<TRequest, TResponse>(
-            Socket socket_, TRequest request_, Action<TResponse> callback_ = null)
+    public int SendRequest<TRequest, TResponse>(
+            string handler_, TRequest request_, Action<TResponse> callback_ = null)
             where TResponse : class {
         var baseRequest = new BaseRequest<TRequest>() {
             type = "request",
             request_id = _requestId,
-            handler = "login_request",
+            handler = string.Format("{0}_request", handler_),
             request = request_,
         };
         SendMessage<BaseRequest<TRequest>>(baseRequest, baseRequest.handler);
         _callbackMap.Add(_requestId, new _ResponseHandler<TResponse>(callback_));
         _requestId++;
+        return _requestId - 1;
     }
 }
 
 
 public interface IReponseHandler {
     void RecvMessage(object message_);
+}
+
+[System.Serializable]
+public class _LoginRequestResponse {
+    public string handler;
+    public string type;
+    public int request_id;
+    public LoginRequestResponse response;
 }
 
 public class _ResponseHandler<T> : IReponseHandler where T: class{
@@ -248,3 +279,4 @@ public class _ResponseHandler<T> : IReponseHandler where T: class{
             _callback(message_ as T);
     }
 }
+

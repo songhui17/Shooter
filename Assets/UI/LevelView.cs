@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 
+using Shooter;
+
 public class LevelView : ViewBase {
     private static LevelView _lastSelectedLevelInfo;
 
@@ -14,11 +16,53 @@ public class LevelView : ViewBase {
     [SerializeField]
     private GameObject _infoPanel;
 
+    [SerializeField]
+    private Image _star1Image;
+
+    [SerializeField]
+    private Image _star2Image;
+
+    [SerializeField]
+    private Image _star3Image;
+
+    [SerializeField]
+    private Button _startButton;
+
+    void Awake()
+    {
+        DataContext = gameObject.AddComponent<LevelViewModel>();
+    }
+
     protected override void OnDataContextChanged(
             INotifyPropertyChanged newContext_) {
         base.OnDataContextChanged(newContext_);
 
         if (newContext_ != null){
+            HandlePropertyChanged(newContext_, "ActorLevelInfo");
+            HandlePropertyChanged(newContext_, "CanFight");
+        }else{
+        }
+    }
+
+    protected override void HandlePropertyChanged(
+            INotifyPropertyChanged sender_, object property_){
+        var viewModel = DataContext as LevelViewModel;
+        switch (property_ as string){
+            case "ActorLevelInfo":
+                {
+                    var levelInfo = viewModel.ActorLevelInfo;
+                    _star1Image.color = levelInfo.star1 ? Color.white : Color.black;
+                    _star2Image.color = levelInfo.star2 ? Color.white : Color.black;
+                    _star3Image.color = levelInfo.star3 ? Color.white : Color.black;
+                }
+                break;
+            case "CanFight":
+                {
+                    _startButton.interactable = viewModel.CanFight;
+                }
+                break;
+            default:
+                break;
         }
     }
 
