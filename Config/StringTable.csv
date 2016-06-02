@@ -1,0 +1,7 @@
+Login.Status.Connecting:正在连接服务器...
+Login.Status.Logining:正在登录账号...
+Login.Status.ConnectFailed:连接服务器失败，请检查网络连接后重试
+Login.Status.LoginSuccess:账号登录成功
+Login.Status.LoginFailed:账号登录失败，请检查账号或密码后重试
+
+Login.Welcome.Format:{0}, 欢迎进入游戏
