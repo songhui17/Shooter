@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+using System;
+
 public enum LoadingType {
     StartFight = 0,
     BackToLobby,
@@ -53,6 +55,13 @@ public class LoadingViewModel : ViewModelBase {
     private float _loadingScreenDuration = 2.0f;
     private float _loadingStartTime = 0.0f;
 
+    public event Action<string> Loaded;
+    private void OnLoaded(string level_) {
+        if (Loaded != null) {
+            Loaded(level_);
+        } 
+    }
+
     #region MonoBehaviour
 
     void Awake(){
@@ -78,6 +87,8 @@ public class LoadingViewModel : ViewModelBase {
                     _loadingStartTime = 0.0f;
                     Blackboard.Instance.LastLoadingDone = true;
                     IsLoading = false;
+
+                    OnLoaded("");
                 }
             }
         }else{
@@ -101,6 +112,21 @@ public class LoadingViewModel : ViewModelBase {
         _loadingStartTime = Time.realtimeSinceStartup;
 
         var scene = level_.Scene;
+        _loadingOperation = SceneManager.LoadSceneAsync(scene);
+        if (_verbose)
+            Debug.Log(string.Format("IsLoading: {0}, scene: {1}",
+                                    IsLoading, scene));
+    }
+
+    // TODO:
+    public void StartFight(string scene_) {
+        LoadingType = LoadingType.StartFight;
+
+        IsLoading = true;
+        Blackboard.Instance.LastLoadingDone = false;
+        _loadingStartTime = Time.realtimeSinceStartup;
+
+        var scene = scene_;
         _loadingOperation = SceneManager.LoadSceneAsync(scene);
         if (_verbose)
             Debug.Log(string.Format("IsLoading: {0}, scene: {1}",

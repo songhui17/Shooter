@@ -141,6 +141,9 @@ public class LoadingView : ViewBase {
         _startFightPanel.SetActive(true);
         _backToLobbyPanel.SetActive(false);
 
+        // TODO:
+        return;
+
         var level = viewModel_.CurrentLevel;
         var chapterId = level.Chapter.ID;
 

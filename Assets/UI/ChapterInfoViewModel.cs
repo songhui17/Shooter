@@ -41,10 +41,10 @@ public class ChapterInfoViewModel : ViewModelBase {
     #endregion 
 
     public void StartFight(){
-        var loadingViewModel = LoadingViewModel.Instance;
-        if (loadingViewModel != null)
-            loadingViewModel.StartFight(Level);
-
+        // var loadingViewModel = LoadingViewModel.Instance;
+        // if (loadingViewModel != null)
+            // loadingViewModel.StartFight(Level);
+        
         SockUtil.Instance.SendRequest<StartLevelRequest, StartLevelRequestResponse>(
             "start_level", new StartLevelRequest() {
                 actor_id = 0,

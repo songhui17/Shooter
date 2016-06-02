@@ -221,7 +221,9 @@ public class AutoMotor : MonoBehaviour {
     void Update(){
         if (Input.GetMouseButton(0)){
             if (Cursor.lockState != CursorLockMode.Locked){
-                Cursor.lockState = CursorLockMode.Locked;
+                // TODO:
+                Debug.LogWarning("TODO");
+                // Cursor.lockState = CursorLockMode.Locked;
             }
         }
         switch (ControlType){

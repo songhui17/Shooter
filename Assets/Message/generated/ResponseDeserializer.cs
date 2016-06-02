@@ -5,14 +5,26 @@ namespace Shooter
     public class ResponseDeserializer {
         public static object Deserialize(string handler_, string payload_, out int requestId_) {
             
-            if (handler_ == "get_account_info_request_response") {
-                var response = JsonUtility.FromJson<_GetAccountInfoRequestResponse>(payload_) as _GetAccountInfoRequestResponse;
+            if (handler_ == "create_actor_request_response") {
+                var response = JsonUtility.FromJson<_CreateActorRequestResponse>(payload_) as _CreateActorRequestResponse;
                 requestId_ = response.request_id;
                 return response.response;
             }
 
-            if (handler_ == "get_actor_info_request_response") {
-                var response = JsonUtility.FromJson<_GetActorInfoRequestResponse>(payload_) as _GetActorInfoRequestResponse;
+            if (handler_ == "enter_level_request_response") {
+                var response = JsonUtility.FromJson<_EnterLevelRequestResponse>(payload_) as _EnterLevelRequestResponse;
+                requestId_ = response.request_id;
+                return response.response;
+            }
+
+            if (handler_ == "start_level_request_response") {
+                var response = JsonUtility.FromJson<_StartLevelRequestResponse>(payload_) as _StartLevelRequestResponse;
+                requestId_ = response.request_id;
+                return response.response;
+            }
+
+            if (handler_ == "finish_level_request_response") {
+                var response = JsonUtility.FromJson<_FinishLevelRequestResponse>(payload_) as _FinishLevelRequestResponse;
                 requestId_ = response.request_id;
                 return response.response;
             }
@@ -23,14 +35,20 @@ namespace Shooter
                 return response.response;
             }
 
-            if (handler_ == "create_actor_request_response") {
-                var response = JsonUtility.FromJson<_CreateActorRequestResponse>(payload_) as _CreateActorRequestResponse;
+            if (handler_ == "leave_level_request_response") {
+                var response = JsonUtility.FromJson<_LeaveLevelRequestResponse>(payload_) as _LeaveLevelRequestResponse;
                 requestId_ = response.request_id;
                 return response.response;
             }
 
-            if (handler_ == "start_level_request_response") {
-                var response = JsonUtility.FromJson<_StartLevelRequestResponse>(payload_) as _StartLevelRequestResponse;
+            if (handler_ == "get_actor_info_request_response") {
+                var response = JsonUtility.FromJson<_GetActorInfoRequestResponse>(payload_) as _GetActorInfoRequestResponse;
+                requestId_ = response.request_id;
+                return response.response;
+            }
+
+            if (handler_ == "get_account_info_request_response") {
+                var response = JsonUtility.FromJson<_GetAccountInfoRequestResponse>(payload_) as _GetAccountInfoRequestResponse;
                 requestId_ = response.request_id;
                 return response.response;
             }
@@ -61,36 +79,19 @@ namespace Shooter
     public class RequestHandlerDispatcher {
         public static bool HandleRequest(SockUtil sockUtil_, IRequestHandler h_, string handler_, string payload_) {
             
-            if (handler_ == "get_account_info_request") {
-                var request = JsonUtility.FromJson<BaseRequest<GetAccountInfoRequest>>(payload_) as BaseRequest<GetAccountInfoRequest>;
+            if (handler_ == "spawn_bot_request") {
+                var request = JsonUtility.FromJson<BaseRequest<SpawnBotRequest>>(payload_) as BaseRequest<SpawnBotRequest>;
                 var requestId = request.request_id;
                 var requireResponse = request.require_response;
-                var ret = h_.RecvMessage(request.request) as GetAccountInfoRequestResponse;
+                var ret = h_.RecvMessage(request.request) as SpawnBotRequestResponse;
                 if (requireResponse) {
-                    var xxx_response = new _GetAccountInfoRequestResponse() {
+                    var xxx_response = new _SpawnBotRequestResponse() {
                         handler = string.Format("{0}_response", handler_),
                         type = "response",
                         request_id = requestId,
                         response = ret,
                     };
-                    sockUtil_.SendMessage<_GetAccountInfoRequestResponse>(xxx_response, xxx_response.handler);
-                }
-                return true;
-            }
-
-            if (handler_ == "create_actor_request") {
-                var request = JsonUtility.FromJson<BaseRequest<CreateActorRequest>>(payload_) as BaseRequest<CreateActorRequest>;
-                var requestId = request.request_id;
-                var requireResponse = request.require_response;
-                var ret = h_.RecvMessage(request.request) as CreateActorRequestResponse;
-                if (requireResponse) {
-                    var xxx_response = new _CreateActorRequestResponse() {
-                        handler = string.Format("{0}_response", handler_),
-                        type = "response",
-                        request_id = requestId,
-                        response = ret,
-                    };
-                    sockUtil_.SendMessage<_CreateActorRequestResponse>(xxx_response, xxx_response.handler);
+                    sockUtil_.SendMessage<_SpawnBotRequestResponse>(xxx_response, xxx_response.handler);
                 }
                 return true;
             }
@@ -129,6 +130,57 @@ namespace Shooter
                 return true;
             }
 
+            if (handler_ == "enter_level_request") {
+                var request = JsonUtility.FromJson<BaseRequest<EnterLevelRequest>>(payload_) as BaseRequest<EnterLevelRequest>;
+                var requestId = request.request_id;
+                var requireResponse = request.require_response;
+                var ret = h_.RecvMessage(request.request) as EnterLevelRequestResponse;
+                if (requireResponse) {
+                    var xxx_response = new _EnterLevelRequestResponse() {
+                        handler = string.Format("{0}_response", handler_),
+                        type = "response",
+                        request_id = requestId,
+                        response = ret,
+                    };
+                    sockUtil_.SendMessage<_EnterLevelRequestResponse>(xxx_response, xxx_response.handler);
+                }
+                return true;
+            }
+
+            if (handler_ == "finish_level_request") {
+                var request = JsonUtility.FromJson<BaseRequest<FinishLevelRequest>>(payload_) as BaseRequest<FinishLevelRequest>;
+                var requestId = request.request_id;
+                var requireResponse = request.require_response;
+                var ret = h_.RecvMessage(request.request) as FinishLevelRequestResponse;
+                if (requireResponse) {
+                    var xxx_response = new _FinishLevelRequestResponse() {
+                        handler = string.Format("{0}_response", handler_),
+                        type = "response",
+                        request_id = requestId,
+                        response = ret,
+                    };
+                    sockUtil_.SendMessage<_FinishLevelRequestResponse>(xxx_response, xxx_response.handler);
+                }
+                return true;
+            }
+
+            if (handler_ == "get_account_info_request") {
+                var request = JsonUtility.FromJson<BaseRequest<GetAccountInfoRequest>>(payload_) as BaseRequest<GetAccountInfoRequest>;
+                var requestId = request.request_id;
+                var requireResponse = request.require_response;
+                var ret = h_.RecvMessage(request.request) as GetAccountInfoRequestResponse;
+                if (requireResponse) {
+                    var xxx_response = new _GetAccountInfoRequestResponse() {
+                        handler = string.Format("{0}_response", handler_),
+                        type = "response",
+                        request_id = requestId,
+                        response = ret,
+                    };
+                    sockUtil_.SendMessage<_GetAccountInfoRequestResponse>(xxx_response, xxx_response.handler);
+                }
+                return true;
+            }
+
             if (handler_ == "get_level_info_request") {
                 var request = JsonUtility.FromJson<BaseRequest<GetLevelInfoRequest>>(payload_) as BaseRequest<GetLevelInfoRequest>;
                 var requestId = request.request_id;
@@ -146,19 +198,36 @@ namespace Shooter
                 return true;
             }
 
-            if (handler_ == "spawn_bot_request") {
-                var request = JsonUtility.FromJson<BaseRequest<SpawnBotRequest>>(payload_) as BaseRequest<SpawnBotRequest>;
+            if (handler_ == "create_actor_request") {
+                var request = JsonUtility.FromJson<BaseRequest<CreateActorRequest>>(payload_) as BaseRequest<CreateActorRequest>;
                 var requestId = request.request_id;
                 var requireResponse = request.require_response;
-                var ret = h_.RecvMessage(request.request) as SpawnBotRequestResponse;
+                var ret = h_.RecvMessage(request.request) as CreateActorRequestResponse;
                 if (requireResponse) {
-                    var xxx_response = new _SpawnBotRequestResponse() {
+                    var xxx_response = new _CreateActorRequestResponse() {
                         handler = string.Format("{0}_response", handler_),
                         type = "response",
                         request_id = requestId,
                         response = ret,
                     };
-                    sockUtil_.SendMessage<_SpawnBotRequestResponse>(xxx_response, xxx_response.handler);
+                    sockUtil_.SendMessage<_CreateActorRequestResponse>(xxx_response, xxx_response.handler);
+                }
+                return true;
+            }
+
+            if (handler_ == "leave_level_request") {
+                var request = JsonUtility.FromJson<BaseRequest<LeaveLevelRequest>>(payload_) as BaseRequest<LeaveLevelRequest>;
+                var requestId = request.request_id;
+                var requireResponse = request.require_response;
+                var ret = h_.RecvMessage(request.request) as LeaveLevelRequestResponse;
+                if (requireResponse) {
+                    var xxx_response = new _LeaveLevelRequestResponse() {
+                        handler = string.Format("{0}_response", handler_),
+                        type = "response",
+                        request_id = requestId,
+                        response = ret,
+                    };
+                    sockUtil_.SendMessage<_LeaveLevelRequestResponse>(xxx_response, xxx_response.handler);
                 }
                 return true;
             }

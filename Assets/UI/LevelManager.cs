@@ -34,7 +34,40 @@ public class LevelManager : ViewModelBase {
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        SockUtil.Instance.RegisterHandler<SpawnBotRequest, SpawnBotRequestResponse> ("spawn_bot", HandleSpawnBotRequest);
+
+        SockUtil.Instance.RegisterHandler<StartLevelRequest, StartLevelRequestResponse>("start_level", HandleStartLevel);
+
+        SockUtil.Instance.RegisterHandler<FinishLevelRequest, FinishLevelRequestResponse>("finish_level", HandleFinishLevel);
     }
+
+    SpawnBotRequestResponse HandleSpawnBotRequest(SpawnBotRequest request_) {
+        Debug.Log(request_);
+        return new SpawnBotRequestResponse() {
+            errno = 0,
+        };
+    }
+
+    StartLevelRequestResponse HandleStartLevel(StartLevelRequest request_) {
+        LoadingViewModel.Instance.Loaded += OnLoaded;
+        Debug.LogWarning("TODO");
+        LoadingViewModel.Instance.StartFight("Prototype");
+        return new StartLevelRequestResponse() { errno = 0 };
+    }
+
+    public FightFinishViewModel FightFinish;
+    FinishLevelRequestResponse HandleFinishLevel(FinishLevelRequest request_) {
+        FightFinish.IsFightFinished = true;
+        return new FinishLevelRequestResponse() { errno = 0 };
+    }
+
+    void OnLoaded(string scene_) {
+        LoadingViewModel.Instance.Loaded -= OnLoaded;
+        SockUtil.Instance.SendRequest<EnterLevelRequest, EnterLevelRequestResponse>(
+                "enter_level", new EnterLevelRequest(), null);
+    }
+
 
     public void SetActorLeveInfo(List<ActorLevelInfo> leveInfo_) {
         ActorLevelInfoList = leveInfo_;

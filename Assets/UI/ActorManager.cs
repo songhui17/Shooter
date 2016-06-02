@@ -40,19 +40,10 @@ public class ActorManager : MonoBehaviour {
         _instance = this;
         DontDestroyOnLoad(gameObject);
 
-        SockUtil.Instance.RegisterHandler<SpawnBotRequest, SpawnBotRequestResponse> ("spawn_bot", HandleSpawnBotRequest);
-
         SockUtil.Instance.SendRequest<GetAccountInfoRequest, GetAccountInfoRequestResponse>(
             "get_account_info", new GetAccountInfoRequest() {
                 username = LoginViewModel.Instance.Account
             }, OnGetAccountInfo);
-    }
-
-    SpawnBotRequestResponse HandleSpawnBotRequest(SpawnBotRequest request_) {
-        Debug.Log(request_);
-        return new SpawnBotRequestResponse() {
-            errno = 0,
-        };
     }
 
     void OnGetAccountInfo(GetAccountInfoRequestResponse response_, int requestId_) {

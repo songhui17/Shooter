@@ -22,7 +22,7 @@ public class LevelManagerView : ViewBase {
 
         if (newContext_ != null){
             HandlePropertyChanged(newContext_, "ActorLevelInfoList");
-            HandlePropertyChanged(newContext_, "LeveInfoList");
+            HandlePropertyChanged(newContext_, "LevelInfoList");
         }else{
         }
     }
