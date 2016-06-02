@@ -18,9 +18,9 @@ public enum ENUM_CONNECTION_STATE {
 public class SockUtil : MonoBehaviour {
     private int _requestId = 1;
     private Socket _socket;
-    private byte[] _buffer = new byte[1024];
-    private byte[] _readBuffer = new byte[1024];
-    private byte[] _swapBuffer = new byte[1024];
+    private byte[] _buffer = new byte[10240];
+    private byte[] _readBuffer = new byte[10240];
+    private byte[] _swapBuffer = new byte[10240];
     private int _readIndex = 0;
 
     private static SockUtil _instance;
@@ -181,11 +181,45 @@ public class SockUtil : MonoBehaviour {
         var response = ResponseDeserializer.Deserialize(handler_, payload_, out requestId);
         if (response != null) {
             if (_callbackMap.ContainsKey(requestId)) {
-                _callbackMap[requestId].RecvMessage(response);
+                _callbackMap[requestId].RecvMessage(response, requestId);
                 _callbackMap.Remove(requestId);
             }
+            return;
+        }
+
+        IRequestHandler _h;
+        bool handled = false;
+        if((handled = _handlerMap.TryGetValue(handler_, out _h))) {
+            try{
+                handled = handled && RequestHandlerDispatcher.HandleRequest(this, _h, handler_, payload_);
+            }catch(Exception ex){
+                Debug.LogWarning(ex);
+                var info = ex.Message;
+                var xxx_error = new BaseError() {
+                    handler = string.Format("{0}_error", handler_),
+                    type="error",
+                    request_id = requestId,
+                    error = info
+                };
+                SendMessage<BaseError>(xxx_error, xxx_error.handler);
+                return;
+            }
+        }
+
+        if (!handled) {
+            var info = "There is not handler for handler_: " + handler_;
+            Debug.Log(info);
+            var xxx_error = new BaseError() {
+                handler = string.Format("{0}_error", handler_),
+                type="error",
+                request_id = requestId,
+                error = info
+            };
+            SendMessage<BaseError>(xxx_error, xxx_error.handler);
         }
     }
+
+    private Dictionary<string, IRequestHandler> _handlerMap = new Dictionary<string, IRequestHandler>();
 
     // TODO: positive only
     private static int WriteByte128(int value_, byte[] buffer_, int index_) {
@@ -224,7 +258,9 @@ public class SockUtil : MonoBehaviour {
         return str;
     }
 
-    private void SendMessage<T>(T request_, string handler_) {
+    // warning: don't call SendMessage directly
+    // SendMessage is made public for RequestHandlerDispatcher
+    public void SendMessage<T>(T request_, string handler_) {
         var payload = JsonUtility.ToJson(request_);
         var index = 0;
         // index = WriteString(payload, _buffer, index);
@@ -240,43 +276,34 @@ public class SockUtil : MonoBehaviour {
 
     private Dictionary<int, IReponseHandler> _callbackMap = new Dictionary<int, IReponseHandler>();
     public int SendRequest<TRequest, TResponse>(
-            string handler_, TRequest request_, Action<TResponse> callback_ = null)
+            string handler_, TRequest request_, Action<TResponse, int> callback_ = null)
             where TResponse : class {
         var baseRequest = new BaseRequest<TRequest>() {
             type = "request",
             request_id = _requestId,
+            require_response = callback_ != null,
             handler = string.Format("{0}_request", handler_),
             request = request_,
         };
         SendMessage<BaseRequest<TRequest>>(baseRequest, baseRequest.handler);
-        _callbackMap.Add(_requestId, new _ResponseHandler<TResponse>(callback_));
+        if (callback_ != null) {
+            _callbackMap.Add(_requestId, new _ResponseHandler<TResponse>(callback_));
+        }
         _requestId++;
         return _requestId - 1;
     }
-}
 
+    public void RegisterHandler<TRequest, TResponse>(
+            string key_, Func<TRequest, TResponse> handler_) where TRequest: class {
+        if (key_ == null || handler_ == null) {
+            return;
+        }
+        key_ = string.Format("{0}_request", key_);
+        if (_handlerMap.ContainsKey(key_)) {
+            throw new Exception(string.Format("Key: {0} is already register", key_));
+        }
 
-public interface IReponseHandler {
-    void RecvMessage(object message_);
-}
-
-[System.Serializable]
-public class _LoginRequestResponse {
-    public string handler;
-    public string type;
-    public int request_id;
-    public LoginRequestResponse response;
-}
-
-public class _ResponseHandler<T> : IReponseHandler where T: class{
-    private Action<T> _callback;
-    public _ResponseHandler(Action<T> callback_) {
-        _callback = callback_;
-    }
-
-    public void RecvMessage(object message_) {
-        if (_callback != null)
-            _callback(message_ as T);
+        _handlerMap.Add(key_, new _RequestHandler<TRequest, TResponse>(handler_));
     }
 }
 

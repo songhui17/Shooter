@@ -96,7 +96,7 @@ public class LoginViewModel : ViewModelBase {
         }
     }
 
-    private void OnLogin(LoginRequestResponse response_) {
+    private void OnLogin(LoginRequestResponse response_, int requestId_) {
         Debug.Log(response_);
         _isSendingLogin = false;
         if (response_.errno == 0) {

@@ -18,6 +18,13 @@ public class LevelManager : ViewModelBase {
         set { _actorLevelInfoList = value; OnPropertyChanged("ActorLevelInfoList"); }
     }
 
+    private List<LevelInfo> _levelInfoList;
+    public List<LevelInfo> LevelInfoList
+    {
+        get { return _levelInfoList ?? (_levelInfoList = new List<LevelInfo>()); }
+        set { _levelInfoList = value; OnPropertyChanged("LevelInfoList"); }
+    }
+
     void Awake() {
         if (Instance != null){
             enabled = false;
@@ -31,5 +38,8 @@ public class LevelManager : ViewModelBase {
 
     public void SetActorLeveInfo(List<ActorLevelInfo> leveInfo_) {
         ActorLevelInfoList = leveInfo_;
+    }
+    public void SetLevelInfo(List<LevelInfo> leveInfo_) {
+        LevelInfoList = leveInfo_;
     }
 }

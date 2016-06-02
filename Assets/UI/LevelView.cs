@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Collections.Generic;
 
 using Shooter;
 
@@ -28,6 +29,24 @@ public class LevelView : ViewBase {
     [SerializeField]
     private Button _startButton;
 
+    [SerializeField]
+    private Text _titleText;
+
+    [SerializeField]
+    private Text _task1Text;
+
+    [SerializeField]
+    private Text _task2Text;
+
+    [SerializeField]
+    private Text _task3Text;
+
+    [SerializeField]
+    private List<Text> _bonusTextList;
+
+    [SerializeField]
+    private List<Image> _bonusImageList;
+
     void Awake()
     {
         DataContext = gameObject.AddComponent<LevelViewModel>();
@@ -39,6 +58,7 @@ public class LevelView : ViewBase {
 
         if (newContext_ != null){
             HandlePropertyChanged(newContext_, "ActorLevelInfo");
+            HandlePropertyChanged(newContext_, "LevelInfo");
             HandlePropertyChanged(newContext_, "CanFight");
         }else{
         }
@@ -54,6 +74,33 @@ public class LevelView : ViewBase {
                     _star1Image.color = levelInfo.star1 ? Color.white : Color.black;
                     _star2Image.color = levelInfo.star2 ? Color.white : Color.black;
                     _star3Image.color = levelInfo.star3 ? Color.white : Color.black;
+                }
+                break;
+            case "LevelInfo":
+                {
+                    var levelInfo = viewModel.LevelInfo;
+                    if (levelInfo != null){
+                        var title = "";
+                        var levelInfoTitle = levelInfo.title ?? "";
+                        for (int i = 0; i < levelInfoTitle.Length;  i++)
+                        {
+                            title += (levelInfo.title[i]);
+                            if (i != levelInfoTitle.Length - 1) {
+                                title += "\n";
+                            }
+                        }
+                        _titleText.text = title;
+                        _task1Text.text = levelInfo.task1; 
+                        _task2Text.text = levelInfo.task2; 
+                        _task3Text.text = levelInfo.task3; 
+
+                        if (levelInfo.bonuses != null) {
+                            var minLength = Mathf.Min(levelInfo.bonuses.Count, _bonusTextList.Count);
+                            for (int i = 0; i < minLength; i++){
+                                _bonusTextList[i].text = levelInfo.bonuses[i];
+                            }
+                        }
+                    }
                 }
                 break;
             case "CanFight":
@@ -186,7 +233,7 @@ public class LevelView : ViewBase {
                     break;
                 case OPEN_STATE.SetPosition:
                     {
-                        var speed = 400.0f;
+                        var speed = 600.0f;
                         speed *= direction;
                         var delta = speed * Time.deltaTime;
                         if (hiddenLength != 0){

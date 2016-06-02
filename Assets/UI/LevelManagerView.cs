@@ -5,11 +5,8 @@ public class LevelManagerView : ViewBase {
     [SerializeField]
     private List<LevelView> _levelViewList;
 
-    [SerializeField]
-    private LevelManager _viewModel;
-
     void Start() {
-        DataContext = _viewModel;
+        DataContext = LevelManager.Instance;
     }
 
     [ContextMenu("Get LevelView in Children")]
@@ -25,6 +22,7 @@ public class LevelManagerView : ViewBase {
 
         if (newContext_ != null){
             HandlePropertyChanged(newContext_, "ActorLevelInfoList");
+            HandlePropertyChanged(newContext_, "LeveInfoList");
         }else{
         }
     }
@@ -50,7 +48,15 @@ public class LevelManagerView : ViewBase {
                             if (levelViewModel.CanFight)
                                 levelViewModel.CanFight = false;
                         }
-
+                    }
+                }
+                break;
+            case "LevelInfoList":
+                {
+                    for (int i = 0; i < _levelViewList.Count; i++) {
+                        var levelViewModel = _levelViewList[i].DataContext as LevelViewModel;
+                        var levelInfo = viewModel.LevelInfoList.Find(item_ => item_.level_id == i);
+                        levelViewModel.LevelInfo = levelInfo;
                     }
                 }
                 break;

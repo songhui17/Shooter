@@ -11,6 +11,13 @@ public class LevelViewModel : ViewModelBase {
         set { _actorLevelInfo= value; OnPropertyChanged("ActorLevelInfo"); }
     }
 
+    private LevelInfo _levelInfo;
+    public LevelInfo LevelInfo
+    {
+        get { return _levelInfo?? (_levelInfo= new LevelInfo());}
+        set { _levelInfo= value; OnPropertyChanged("LevelInfo"); }
+    }
+
     private bool _canFight;
     public bool CanFight
     {

@@ -40,12 +40,22 @@ public class ActorManager : MonoBehaviour {
         _instance = this;
         DontDestroyOnLoad(gameObject);
 
+        SockUtil.Instance.RegisterHandler<SpawnBotRequest, SpawnBotRequestResponse> ("spawn_bot", HandleSpawnBotRequest);
+
         SockUtil.Instance.SendRequest<GetAccountInfoRequest, GetAccountInfoRequestResponse>(
-            "get_account_info", new GetAccountInfoRequest() { username = LoginViewModel.Instance.Account, },
-            OnGetAccountInfo);
+            "get_account_info", new GetAccountInfoRequest() {
+                username = LoginViewModel.Instance.Account
+            }, OnGetAccountInfo);
     }
 
-    void OnGetAccountInfo(GetAccountInfoRequestResponse response_) {
+    SpawnBotRequestResponse HandleSpawnBotRequest(SpawnBotRequest request_) {
+        Debug.Log(request_);
+        return new SpawnBotRequestResponse() {
+            errno = 0,
+        };
+    }
+
+    void OnGetAccountInfo(GetAccountInfoRequestResponse response_, int requestId_) {
         Debug.Log(response_);
         var errno = response_.errno;
         if (errno == 0) {
@@ -56,6 +66,7 @@ public class ActorManager : MonoBehaviour {
             if (_hasActor) {
                 GetActorInfo();
                 GetActorLevelInfo();
+                GetLevelInfo();
             }
         }else if(errno == 3){
             // _hasActor = false;
@@ -75,13 +86,14 @@ public class ActorManager : MonoBehaviour {
                 }, OnCreateActor);
     }
 
-    void OnCreateActor(CreateActorRequestResponse response_) {
+    void OnCreateActor(CreateActorRequestResponse response_, int requestId_) {
         Debug.Log(response_);
         var errno = response_.errno;
         if (errno == 0) {
             _createActorViewModel.ShowPanel = false;
             GetActorInfo();
             GetActorLevelInfo();
+            GetLevelInfo();
         }else if(errno == 3) {
             // TODO: login required
         }
@@ -95,7 +107,7 @@ public class ActorManager : MonoBehaviour {
                 }, OnGetActorInfo);
     }
 
-    void OnGetActorInfo(GetActorInfoRequestResponse response_) {
+    void OnGetActorInfo(GetActorInfoRequestResponse response_, int requestId_) {
         Debug.Log(response_);
         RequestCount--;
     }
@@ -108,19 +120,42 @@ public class ActorManager : MonoBehaviour {
                 }, OnGetActorLevelInfo);
     }
     
-    void OnGetActorLevelInfo(GetActorLevelInfoRequestResponse response_) {
+    void OnGetActorLevelInfo(GetActorLevelInfoRequestResponse response_, int requestId_) {
         RequestCount--;
-        var info = "OnGetActorLevelInfo\n";
+        var info = "OnGetActorLevelInfo:\n";
         foreach (var levelInfo in response_.actor_level_info)
         {
             info += levelInfo + "\n";
         }
-        LevelManager.Instance.SetActorLeveInfo(response_.actor_level_info);
         Debug.Log(info);
+        LevelManager.Instance.SetActorLeveInfo(response_.actor_level_info);
 
         if (response_.errno == 0){
         }else{
             throw new NotImplementedException("Handle OnGetActorLevelInfo error");
+        }
+    }
+
+    void GetLevelInfo() {
+        RequestCount++;
+        SockUtil.Instance.SendRequest<GetLevelInfoRequest, GetLevelInfoRequestResponse>(
+                "get_level_info", new GetLevelInfoRequest() {
+                    username = LoginViewModel.Instance.Account,
+                }, OnGetLevelInfo);
+    }
+
+    void OnGetLevelInfo(GetLevelInfoRequestResponse response_, int requestId_) {
+        RequestCount--;
+        var info = "OnGetLevelInfo:\n";
+        foreach (var levelInfo in response_.level_info)
+        {
+            info += levelInfo + "\n";
+        }
+        Debug.Log(info);
+        LevelManager.Instance.SetLevelInfo(response_.level_info);
+        if (response_.errno == 0){
+        }else{
+            throw new NotImplementedException("Handle OnGetLevelInfo error");
         }
     }
 }

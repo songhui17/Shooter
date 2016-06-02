@@ -2,6 +2,8 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
+using Shooter;
+
 public class ChapterInfoViewModel : ViewModelBase {
     #region Properties
 
@@ -42,6 +44,12 @@ public class ChapterInfoViewModel : ViewModelBase {
         var loadingViewModel = LoadingViewModel.Instance;
         if (loadingViewModel != null)
             loadingViewModel.StartFight(Level);
+
+        SockUtil.Instance.SendRequest<StartLevelRequest, StartLevelRequestResponse>(
+            "start_level", new StartLevelRequest() {
+                actor_id = 0,
+                level_id = 0,
+            }, null);
     }
 
     void Awake(){
