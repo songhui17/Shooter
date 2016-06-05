@@ -7,6 +7,14 @@ public class AvatarShow : MonoBehaviour {
     public float _fallingSpeed;
     public float _startHeight = 1.0f;
 
+    private float _rotateSpeed = 0;
+    [SerializeField]
+    private float _drag = 0.1f;
+
+    [SerializeField]
+    private float _multiplier = 100;
+    public JoyStick _joystick;
+
     void Start() {
         StartCoroutine(WaitForLoadingDone());
     }
@@ -38,6 +46,21 @@ public class AvatarShow : MonoBehaviour {
             }
         }else if (state.IsName("soliderIdleRelaxed")) {
 
+        }
+
+        var rotateY = -_joystick.GetAxis("Mouse X");
+        _rotateSpeed += rotateY * Time.deltaTime;
+        if (Mathf.Abs(_rotateSpeed) > 0) {
+            var newSpeed = _rotateSpeed;
+            if (rotateY == 0)
+                newSpeed += (-_rotateSpeed / Mathf.Abs(_rotateSpeed)) * _drag * Time.deltaTime;
+
+            if (newSpeed * _rotateSpeed < 0) {
+                _rotateSpeed = 0;
+            }else{
+                _rotateSpeed = newSpeed;
+            }
+            transform.Rotate(Vector3.up, _multiplier * _rotateSpeed * Time.deltaTime, Space.World);
         }
     }
 }

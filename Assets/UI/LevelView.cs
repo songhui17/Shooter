@@ -30,6 +30,15 @@ public class LevelView : ViewBase {
     private Button _startButton;
 
     [SerializeField]
+    private GameObject _lock1Panel;
+
+    [SerializeField]
+    private GameObject _lock2Panel;
+
+    [SerializeField]
+    private GameObject _latestHintPanel;
+
+    [SerializeField]
     private Text _titleText;
 
     [SerializeField]
@@ -60,6 +69,7 @@ public class LevelView : ViewBase {
             HandlePropertyChanged(newContext_, "ActorLevelInfo");
             HandlePropertyChanged(newContext_, "LevelInfo");
             HandlePropertyChanged(newContext_, "CanFight");
+            HandlePropertyChanged(newContext_, "Latest");
         }else{
         }
     }
@@ -106,6 +116,14 @@ public class LevelView : ViewBase {
             case "CanFight":
                 {
                     _startButton.interactable = viewModel.CanFight;
+
+                    _lock1Panel.SetActive(!viewModel.CanFight);
+                    _lock2Panel.SetActive(!viewModel.CanFight);
+                }
+                break;
+            case "Latest":
+                {
+                    _latestHintPanel.SetActive(viewModel.Latest);
                 }
                 break;
             default:
@@ -113,9 +131,18 @@ public class LevelView : ViewBase {
         }
     }
 
+    public void OnStartLevelButton() {
+        var viewModel = DataContext as LevelViewModel;
+        if (viewModel != null) {
+            viewModel.StartLevel();
+        }
+    }
+
+    private static bool _processing  = false;
     public void OnButton() {
-        if (_infoPanel != null){
+        if (_infoPanel != null && !_processing){
             var open = !_infoPanel.activeInHierarchy;
+            _processing = true;
             if (open) {
                 StartCoroutine(Open());
             }else{
@@ -135,6 +162,7 @@ public class LevelView : ViewBase {
             yield return null;
         }
         yield return null;
+        _processing = false;
     }
 
     enum OPEN_STATE {
@@ -287,6 +315,8 @@ public class LevelView : ViewBase {
             yield return null;
         }
 
+        yield return null;
+        _processing = false;
         Debug.Log(string.Format("{0}: Open done", this));
     }
 }

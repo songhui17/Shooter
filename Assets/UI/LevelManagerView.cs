@@ -43,10 +43,15 @@ public class LevelManagerView : ViewBase {
 
                             if (levelInfo == null || !levelInfo.passed) {
                                 gotNotPassed = true;
+                                levelViewModel.Latest = true;
+                            }else{
+                                levelViewModel.Latest = false;
                             }
                         }else{
-                            if (levelViewModel.CanFight)
+                            if (levelViewModel.CanFight) {
                                 levelViewModel.CanFight = false;
+                            }
+                            levelViewModel.Latest = false;
                         }
                     }
                 }

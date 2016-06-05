@@ -2,19 +2,30 @@ using UnityEngine;
 using System;
 using Shooter;
 
+using ActorInfo = Shooter.Actor;
+
 public enum ENUM_ACTOR_STATE {
 
 }
 
-public class ActorManager : MonoBehaviour {
+public class ActorManager : ViewModelBase {
     private static ActorManager _instance;
     public static ActorManager Instance { get { return _instance; } }
 
     [SerializeField]
     private CreateActorViewModel _createActorViewModel;
 
-    private bool _hasActor { get { return _actorId != -1; } }
-    private int _actorId = -1;
+    // TODO
+    // [SerializeField]
+    // private GameObject _actorShow;
+
+
+    private ActorInfo _actorInfo;
+    public ActorInfo ActorInfo {
+        get { return _actorInfo; }
+        private set { _actorInfo = value; OnPropertyChanged("ActorInfo");}
+    }
+    private bool _hasActor { get { return ActorInfo != null; } }
 
     private int _requestCount = 0;
     public int RequestCount {
@@ -22,9 +33,11 @@ public class ActorManager : MonoBehaviour {
         set {
             _requestCount = value;
             if (_requestCount == 0) {
-                ModalViewModel.Instance.Hide();
+                ModalViewModel.Instance.ShowSpinner = false;
+                // ModalViewModel.Instance.Hide();
             }else{
-                ModalViewModel.Instance.ShowMessage("Sending Request...");
+                ModalViewModel.Instance.ShowSpinner = true;
+                // ModalViewModel.Instance.ShowMessage("Sending Request...");
             }
         }
     }
@@ -40,75 +53,102 @@ public class ActorManager : MonoBehaviour {
         _instance = this;
         DontDestroyOnLoad(gameObject);
 
-        SockUtil.Instance.SendRequest<GetAccountInfoRequest, GetAccountInfoRequestResponse>(
-            "get_account_info", new GetAccountInfoRequest() {
-                username = LoginViewModel.Instance.Account
-            }, OnGetAccountInfo);
+        RequestCount++;
+        var request = new GetAccountInfoRequest() {
+            username = LoginViewModel.Instance.Account
+        };
+        SockUtil.GetAccountInfo(request, OnGetAccountInfo);
+
+        LoadingViewModel.Instance.Loaded += level_ => {
+            if (level_ == "Lobby") {
+                if (_hasActor) {
+                    GetActorInfo();
+                    GetActorLevelInfo();
+                }
+            }
+        };
     }
 
     void OnGetAccountInfo(GetAccountInfoRequestResponse response_, int requestId_) {
         Debug.Log(response_);
+        RequestCount--;
         var errno = response_.errno;
-        if (errno == 0) {
+        if (errno == (int)ENUM_SHOOTER_ERROR.E_OK) {
             _createActorViewModel.ShowPanel = false;
-            _actorId = response_.account_info.actor_id;
-            _createActorViewModel.ShowPanel = !_hasActor;
+            var actorId = response_.account_info.actor_id;
+            _createActorViewModel.ShowPanel = actorId == -1;
 
-            if (_hasActor) {
+            if (actorId != -1) {
                 GetActorInfo();
                 GetActorLevelInfo();
                 GetLevelInfo();
             }
-        }else if(errno == 3){
-            // _hasActor = false;
-            // _createActorViewModel.ShowPanel = true;
-            throw new NotImplementedException("Login required.");
+        } else {
+            ModalViewModel.Instance.ShowMessage(StringTable.Value("Actor.GetAccountInfo.Failed"));
         }
+        // else if(errno == 3){
+        //     // _hasActor = false;
+        //     // _createActorViewModel.ShowPanel = true;
+        //     // throw new NotImplementedException("Login required.");
+        // }
     }
 
     public void CreateActor(int typeId_) {
         string[] actorTypes = {
             "jugg", "sf", "pa",
         };
-        SockUtil.Instance.SendRequest<CreateActorRequest, CreateActorRequestResponse>(
-                "create_actor", new CreateActorRequest() { 
-                    username = LoginViewModel.Instance.Account,
-                    actor_type = actorTypes[typeId_]
-                }, OnCreateActor);
+
+        var request = new CreateActorRequest() {
+            username = LoginViewModel.Instance.Account,
+            actor_type = actorTypes[typeId_],
+        };
+        SockUtil.CreateActor(request, OnCreateActor);
     }
 
     void OnCreateActor(CreateActorRequestResponse response_, int requestId_) {
         Debug.Log(response_);
         var errno = response_.errno;
-        if (errno == 0) {
+        if (errno == (int)ENUM_SHOOTER_ERROR.E_OK) {
             _createActorViewModel.ShowPanel = false;
             GetActorInfo();
             GetActorLevelInfo();
             GetLevelInfo();
-        }else if(errno == 3) {
-            // TODO: login required
+        } else {
+            // throw new NotImplementedException("");
+            // TODO: drop?
+            ModalViewModel.Instance.ShowMessage(StringTable.Value("Actor.CreateActor.Failed"));
         }
     }
 
     void GetActorInfo() {
         RequestCount++;
-        SockUtil.Instance.SendRequest<GetActorInfoRequest, GetActorInfoRequestResponse>(
-                "get_actor_info", new GetActorInfoRequest() {
-                    username = LoginViewModel.Instance.Account,
-                }, OnGetActorInfo);
+
+        var request = new GetActorInfoRequest() {
+            username = LoginViewModel.Instance.Account,
+        };
+        SockUtil.GetActorInfo(request, OnGetActorInfo);
     }
 
     void OnGetActorInfo(GetActorInfoRequestResponse response_, int requestId_) {
         Debug.Log(response_);
         RequestCount--;
+        if (response_.errno == (int)ENUM_SHOOTER_ERROR.E_OK) {
+            ActorInfo = response_.actor_info;
+            // TODO:
+            // _actorShow.SetActive(true);
+        } else {
+            // throw new NotImplementedException("");
+            // TODO: drop?
+            ModalViewModel.Instance.ShowMessage(StringTable.Value("Actor.GetActorInfo.Failed"));
+        }
     }
 
-    void GetActorLevelInfo() {
+    public void GetActorLevelInfo() {
         RequestCount++;
-        SockUtil.Instance.SendRequest<GetActorLevelInfoRequest, GetActorLevelInfoRequestResponse>(
-                "get_actor_level_info", new GetActorLevelInfoRequest() {
-                    username = LoginViewModel.Instance.Account,
-                }, OnGetActorLevelInfo);
+        var request = new GetActorLevelInfoRequest() {
+            username = LoginViewModel.Instance.Account,
+        };
+        SockUtil.GetActorLevelInfo(request, OnGetActorLevelInfo);
     }
     
     void OnGetActorLevelInfo(GetActorLevelInfoRequestResponse response_, int requestId_) {
@@ -121,18 +161,20 @@ public class ActorManager : MonoBehaviour {
         Debug.Log(info);
         LevelManager.Instance.SetActorLeveInfo(response_.actor_level_info);
 
-        if (response_.errno == 0){
+        if (response_.errno == (int)ENUM_SHOOTER_ERROR.E_OK){
         }else{
-            throw new NotImplementedException("Handle OnGetActorLevelInfo error");
+            // throw new NotImplementedException("Handle OnGetActorLevelInfo error");
+            // TODO: drop
+            ModalViewModel.Instance.ShowMessage(StringTable.Value("Actor.GetActorLevelInfo.Failed"));
         }
     }
 
     void GetLevelInfo() {
         RequestCount++;
-        SockUtil.Instance.SendRequest<GetLevelInfoRequest, GetLevelInfoRequestResponse>(
-                "get_level_info", new GetLevelInfoRequest() {
-                    username = LoginViewModel.Instance.Account,
-                }, OnGetLevelInfo);
+        var request = new GetLevelInfoRequest() {
+            username = LoginViewModel.Instance.Account,
+        };
+        SockUtil.GetLevelInfo(request, OnGetLevelInfo);
     }
 
     void OnGetLevelInfo(GetLevelInfoRequestResponse response_, int requestId_) {
@@ -143,10 +185,11 @@ public class ActorManager : MonoBehaviour {
             info += levelInfo + "\n";
         }
         Debug.Log(info);
-        LevelManager.Instance.SetLevelInfo(response_.level_info);
-        if (response_.errno == 0){
+        if (response_.errno == (int)ENUM_SHOOTER_ERROR.E_OK){
+            LevelManager.Instance.SetLevelInfo(response_.level_info);
         }else{
-            throw new NotImplementedException("Handle OnGetLevelInfo error");
+            // throw new NotImplementedException("Handle OnGetLevelInfo error");
+            ModalViewModel.Instance.ShowMessage(StringTable.Value("Level.GetLevelInfo.Failed"));
         }
     }
 }

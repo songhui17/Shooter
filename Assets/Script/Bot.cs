@@ -162,11 +162,16 @@ public class Bot : Actor {
         Profiler.EndSample();
     }
     
+    public event Action<Bot> BotKilled;
     void ApplyDamage(int damage_){
         Debug.Log("I got hit damage_: " + damage_);
         HP--;
         if (HP <= 0)
         {
+            if (BotKilled != null) {
+                BotKilled(this);
+            }
+
             Destroy(gameObject);
             HP = 0;
         }

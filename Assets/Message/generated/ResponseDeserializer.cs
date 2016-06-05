@@ -59,6 +59,12 @@ namespace Shooter
                 return response.response;
             }
 
+            if (handler_ == "level0_bot_killed_request_response") {
+                var response = JsonUtility.FromJson<_Level0BotKilledRequestResponse>(payload_) as _Level0BotKilledRequestResponse;
+                requestId_ = response.request_id;
+                return response.response;
+            }
+
             if (handler_ == "spawn_bot_request_response") {
                 var response = JsonUtility.FromJson<_SpawnBotRequestResponse>(payload_) as _SpawnBotRequestResponse;
                 requestId_ = response.request_id;
@@ -79,6 +85,23 @@ namespace Shooter
     public class RequestHandlerDispatcher {
         public static bool HandleRequest(SockUtil sockUtil_, IRequestHandler h_, string handler_, string payload_) {
             
+            if (handler_ == "level0_bot_killed_request") {
+                var request = JsonUtility.FromJson<BaseRequest<Level0BotKilledRequest>>(payload_) as BaseRequest<Level0BotKilledRequest>;
+                var requestId = request.request_id;
+                var requireResponse = request.require_response;
+                var ret = h_.RecvMessage(request.request) as Level0BotKilledRequestResponse;
+                if (requireResponse) {
+                    var xxx_response = new _Level0BotKilledRequestResponse() {
+                        handler = string.Format("{0}_response", handler_),
+                        type = "response",
+                        request_id = requestId,
+                        response = ret,
+                    };
+                    sockUtil_.SendMessage<_Level0BotKilledRequestResponse>(xxx_response, xxx_response.handler);
+                }
+                return true;
+            }
+
             if (handler_ == "spawn_bot_request") {
                 var request = JsonUtility.FromJson<BaseRequest<SpawnBotRequest>>(payload_) as BaseRequest<SpawnBotRequest>;
                 var requestId = request.request_id;

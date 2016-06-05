@@ -1,12 +1,10 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 
 using Shooter;
 
-public class ObservableList<T> : List<T>
-{
-
-}
+using Vector3 = UnityEngine.Vector3;
 
 public class LevelManager : ViewModelBase {
     public static LevelManager Instance { get; private set; }
@@ -24,6 +22,9 @@ public class LevelManager : ViewModelBase {
         get { return _levelInfoList ?? (_levelInfoList = new List<LevelInfo>()); }
         set { _levelInfoList = value; OnPropertyChanged("LevelInfoList"); }
     }
+
+    [SerializeField]
+    private GameObject _spiderPrefab;
 
     void Awake() {
         if (Instance != null){
@@ -44,14 +45,39 @@ public class LevelManager : ViewModelBase {
 
     SpawnBotRequestResponse HandleSpawnBotRequest(SpawnBotRequest request_) {
         Debug.Log(request_);
-        return new SpawnBotRequestResponse() {
-            errno = 0,
-        };
+        switch (request_.bot_type) {
+            case "spider":
+                {
+                    var position = new Vector3() {
+                        x = request_.position.x,
+                        y = request_.position.y,
+                        z = request_.position.z,
+                    };
+                    var rotation = Quaternion.Euler(0, request_.rotation, 0);
+                    var spider = GameObject.Instantiate(
+                        _spiderPrefab, position, rotation) as GameObject;
+                    var spiderBot = spider.GetComponent<Bot>();
+                    spiderBot.BotKilled += (bot_) => {
+                        SockUtil.Level0BotKilled(new Level0BotKilledRequest(), null);
+                    };
+                    return new SpawnBotRequestResponse() {
+                        errno = 0,
+                    };
+                }
+                break;
+            default:
+                {
+                    // TODO
+                    var info = "Invalid bot_type:" + request_.bot_type;
+                    Debug.LogError(info);
+                    throw new Exception(info);
+                }
+                break;
+        }
     }
 
     StartLevelRequestResponse HandleStartLevel(StartLevelRequest request_) {
         LoadingViewModel.Instance.Loaded += OnLoaded;
-        Debug.LogWarning("TODO");
         LoadingViewModel.Instance.StartFight("Prototype");
         return new StartLevelRequestResponse() { errno = 0 };
     }
@@ -64,13 +90,21 @@ public class LevelManager : ViewModelBase {
 
     void OnLoaded(string scene_) {
         LoadingViewModel.Instance.Loaded -= OnLoaded;
-        SockUtil.Instance.SendRequest<EnterLevelRequest, EnterLevelRequestResponse>(
-                "enter_level", new EnterLevelRequest(), null);
+        SockUtil.EnterLevel(new EnterLevelRequest(), null);
     }
 
 
     public void SetActorLeveInfo(List<ActorLevelInfo> leveInfo_) {
-        ActorLevelInfoList = leveInfo_;
+        // ActorLevelInfoList = leveInfo_;
+        foreach(var info in leveInfo_) {
+            var prev = ActorLevelInfoList.FindIndex(info2_ => info2_.level_id == info.level_id);
+            if (prev >= 0) {
+                ActorLevelInfoList[prev] = info;
+            }else{
+                ActorLevelInfoList.Add(info);
+            }
+        }
+        ActorLevelInfoList = ActorLevelInfoList;
     }
     public void SetLevelInfo(List<LevelInfo> leveInfo_) {
         LevelInfoList = leveInfo_;

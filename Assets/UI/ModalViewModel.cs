@@ -6,11 +6,18 @@ public class ModalViewModel : ViewModelBase {
         get { return _show; }
         set { _show = value; OnPropertyChanged("Show"); }
     }
+    public bool AutoHide { get; private set; }
 
     private string _message;
     public string Message {
         get { return _message ?? (_message = ""); }
         set { _message = value; OnPropertyChanged("Message"); }
+    }
+
+    private bool _showSpinner;
+    public bool ShowSpinner {
+        get { return _showSpinner; }
+        set { _showSpinner = value; OnPropertyChanged("ShowSpinner"); }
     }
 
     public static ModalViewModel Instance { get; private set; }
@@ -25,8 +32,9 @@ public class ModalViewModel : ViewModelBase {
         DontDestroyOnLoad(gameObject);
     }
 
-    public void ShowMessage(string message_) {
+    public void ShowMessage(string message_, bool autoHide_=false) {
         Message = message_;
+        AutoHide = autoHide_;
         Show = true;
     }
 

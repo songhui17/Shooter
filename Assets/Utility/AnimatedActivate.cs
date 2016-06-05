@@ -45,7 +45,8 @@ public class AnimatedActivate : MonoBehaviour {
         StartCoroutine(CoAnimate(value_));
     }
 
-    public void SetActiveAnimated(bool value_, Action callback_) {
+    public void SetActiveAnimated(bool value_, Action callback_,
+                                  float delay_ = 0, bool overwrite_ = false) {
         if (value_ && _state == STATE.Active
             || !value_ && _state == STATE.DisActive) {
             return;
@@ -64,7 +65,7 @@ public class AnimatedActivate : MonoBehaviour {
         }
 
         Animator.speed = 1;
-        StartCoroutine(CoAnimate(value_, _delaySeconds, callback_));
+        StartCoroutine(CoAnimate(value_, overwrite_ ? delay_ : _delaySeconds, callback_));
     }
 
     IEnumerator CoAnimate(bool value_, float delaySeconds_ = 0, Action callback_ = null) {

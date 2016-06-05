@@ -6,6 +6,9 @@ public class LoginView : ViewBase {
     private Animator _loginPanelAnimator;
 
     [SerializeField]
+    private GameObject _enterButton;
+
+    [SerializeField]
     private InputField _accountInputField;
 
     [SerializeField]
@@ -16,6 +19,9 @@ public class LoginView : ViewBase {
 
     [SerializeField]
     private Text _statusText;
+
+    [SerializeField]
+    private Text _welcomeText;
 
     [SerializeField]
     private Animator _welcomePanelAnimator;
@@ -90,6 +96,7 @@ public class LoginView : ViewBase {
                     {
                         // _loginPanelAnimator.SetTrigger("toggle");
                         _loginPanelAnimator.SetBool("Open", viewModel.ShowLoginPanel);
+                        _enterButton.SetActive(!viewModel.ShowLoginPanel);
                     }
                     break;
                 //case "ShowStatusPanel":
@@ -169,6 +176,9 @@ public class LoginView : ViewBase {
                     {
                         if (_welcomePanelAnimator != null){
                             _welcomePanelAnimator.SetTrigger("toggle");
+                            var account = viewModel.Account;
+                            account = account.Split('@')[0];
+                            _welcomeText.text = string.Format(StringTable.Value("Login.Welcome.Format"), account);
                         }
                     }
                     break;

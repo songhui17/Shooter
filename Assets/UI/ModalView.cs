@@ -9,6 +9,9 @@ public class ModalView : ViewBase {
     private Text _messageText;
 
     [SerializeField]
+    private SpinningActivate _spinner;
+
+    [SerializeField]
     private ModalViewModel _viewModel;
     void Awake() {
         DataContext = _viewModel;
@@ -20,6 +23,7 @@ public class ModalView : ViewBase {
         if (newContext_ != null){
             HandlePropertyChanged(newContext_, "Show");
             HandlePropertyChanged(newContext_, "Message");
+            HandlePropertyChanged(newContext_, "ShowSpinner");
         }else{
             _messageText.text = "";
         }
@@ -32,12 +36,23 @@ public class ModalView : ViewBase {
             switch (property_ as string){
                 case "Show":
                     {
-                        _messagePanel.SetActive(viewModel.Show);
+                        if (viewModel.Show && viewModel.AutoHide) {
+                            _messagePanel.SetActiveAnimated(true, () => {
+                                _messagePanel.SetActiveAnimated(false, null);
+                            }, 0, true);
+                        }else{
+                            _messagePanel.SetActive(viewModel.Show);
+                        }
                     }
                     break;
                 case "Message":
                     {
                         _messageText.text = viewModel.Message;
+                    }
+                    break;
+                case "ShowSpinner":
+                    {
+                        _spinner.SetActive(viewModel.ShowSpinner);
                     }
                     break;
                 default:

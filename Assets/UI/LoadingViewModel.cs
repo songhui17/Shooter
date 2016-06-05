@@ -18,7 +18,10 @@ public class LoadingViewModel : ViewModelBase {
         get { return _loadingType; }
         private set { _loadingType = value; }
     }
+
     
+    // TODO
+    private string _currentScene = "";
     private Level _currentLevel;
     public Level CurrentLevel {
         get { return _currentLevel; }
@@ -88,7 +91,7 @@ public class LoadingViewModel : ViewModelBase {
                     Blackboard.Instance.LastLoadingDone = true;
                     IsLoading = false;
 
-                    OnLoaded("");
+                    OnLoaded(_currentScene);
                 }
             }
         }else{
@@ -126,6 +129,7 @@ public class LoadingViewModel : ViewModelBase {
         Blackboard.Instance.LastLoadingDone = false;
         _loadingStartTime = Time.realtimeSinceStartup;
 
+        _currentScene = scene_;
         var scene = scene_;
         _loadingOperation = SceneManager.LoadSceneAsync(scene);
         if (_verbose)
@@ -135,6 +139,7 @@ public class LoadingViewModel : ViewModelBase {
 
     public void BackToLobby(string scene_ = "Lobby"){
         LoadingType = LoadingType.BackToLobby;
+        _currentScene = scene_;
 
         IsLoading = true;
         Blackboard.Instance.LastLoadingDone = false;

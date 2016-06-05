@@ -10,6 +10,9 @@ public class StringTable
 
 
     Dictionary<string, string> _dict;
+    Dictionary<string, string> dict {
+        get { return _dict ?? (_dict = new Dictionary<string, string>()); }
+    }
 
     #endregion
 
@@ -29,17 +32,32 @@ public class StringTable
     #region Constructors
 
     StringTable() {
+// #if UNITY_ANDROID
+//         // TODO: ref InGameConsole.cs Awake()
+//         // InGameConsole.Instance.RegisterCommand("st:e", ReloadFromTextAsset, help_:"Reload StringTable");
+//         ReloadFromTextAsset();
+// #else
         Reload();
+// #endif
     }
 
+    // public void ReloadFromTextAsset() {
+    //     var textAsset = Resources.Load<TextAsset>("StringTable");
+    // }
+
     public void Reload() {
-        _dict = new Dictionary<string, string>();
+        dict.Clear();
+#if UNITY_ANDROID
+        var textAsset = Resources.Load<TextAsset>("StringTable");
+        var reader = new StringReader(textAsset.text);
+#else
         if (!File.Exists(_file)) {
             Debug.LogWarning(string.Format("StringTable _file:{0} doesnt exists", _file));
             return;
         }
-
         var reader = new StreamReader(_file);
+#endif
+
 
         string line = null;
         int lineNumber = 0;
@@ -53,9 +71,9 @@ public class StringTable
             var key = line.Substring(0, index).Trim();
             var value = line.Substring(index + 1);
 
-            if (!_dict.ContainsKey(key))
+            if (!dict.ContainsKey(key))
             {
-                _dict.Add(key, value);
+                dict.Add(key, value);
             }
             else
             {
@@ -71,8 +89,8 @@ public class StringTable
 
     public string this[string key_] {
         get {
-            if (_dict.ContainsKey(key_)) {
-                return _dict[key_];
+            if (dict.ContainsKey(key_)) {
+                return dict[key_];
             } else {
                 return key_;
             }

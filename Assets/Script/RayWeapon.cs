@@ -8,12 +8,38 @@ public class RayWeapon : Weapon {
     public Transform Muzzle;
     public Animator GunAnimator;
 
+    [SerializeField]
+    private LayerMask _layerMask;
+
     void Start(){
         _bulletPrefab = Resources.Load("RayBullet", typeof(GameObject)) as GameObject;
     }
 
+    bool CheckFire() {
+#if UNITY_ANDROID
+        // TODO: copy from Avatar.cs
+        var _direction = transform.forward;
+        var _startPosition = transform.position;
+
+        RaycastHit hit;
+        if (Physics.Raycast(_startPosition, _direction, out hit,
+                100, _layerMask)){
+            var bot = hit.collider.GetComponent<Bot>();
+            if (bot != null){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+#else
+        return Input.GetButton("Fire1");
+#endif
+    }
+
     void Update(){
-        if (Input.GetButton("Fire1")){
+        if (CheckFire()){
             var currentStateInfo = GunAnimator.GetCurrentAnimatorStateInfo(0);
             if (currentStateInfo.IsName("default")){
                 if (GunAnimator.IsInTransition(0)){
@@ -39,17 +65,21 @@ public class RayWeapon : Weapon {
         }
         
         if (Input.GetKeyDown(KeyCode.R)){
-            if (GunAnimator.IsInTransition(0)){
-                var animatorStateInfo = GunAnimator.GetNextAnimatorStateInfo(0);
-                if (!animatorStateInfo.IsName("MachineGun_reload")){
-                    Reload();
-                } 
-            }else{
-                var animatorStateInfo = GunAnimator.GetCurrentAnimatorStateInfo(0);
-                if (!animatorStateInfo.IsName("MachineGun_reload")){
-                    Reload();
-                } 
-            }
+            TryReload();
+        }
+    }
+
+    public void TryReload() {
+        if (GunAnimator.IsInTransition(0)){
+            var animatorStateInfo = GunAnimator.GetNextAnimatorStateInfo(0);
+            if (!animatorStateInfo.IsName("MachineGun_reload")){
+                Reload();
+            } 
+        }else{
+            var animatorStateInfo = GunAnimator.GetCurrentAnimatorStateInfo(0);
+            if (!animatorStateInfo.IsName("MachineGun_reload")){
+                Reload();
+            } 
         }
     }
 
@@ -106,8 +136,6 @@ public class RayWeapon : Weapon {
                 Debug.DrawLine(
                     transform.position, hit.collider.transform.position,
                     Color.red);
-                // Debug.Break();
-                // Debug.Log(hit.collider.gameObject);
             }
             return hitTarget;
         }else{

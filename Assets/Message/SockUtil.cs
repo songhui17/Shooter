@@ -15,7 +15,7 @@ public enum ENUM_CONNECTION_STATE {
     Failed,
 }
 
-public class SockUtil : MonoBehaviour {
+public partial class SockUtil : MonoBehaviour {
     private int _requestId = 1;
     private Socket _socket;
     private byte[] _buffer = new byte[10240];
@@ -64,7 +64,7 @@ public class SockUtil : MonoBehaviour {
 
         try{
             Debug.Log("Connect to...");
-            _socket.Connect("127.0.0.1", 10240);
+            _socket.Connect("192.168.1.103", 10240);
             _connectionState = ENUM_CONNECTION_STATE.Connecting;
         }catch (SocketException ex){
             Debug.Log(ex);
@@ -306,4 +306,3 @@ public class SockUtil : MonoBehaviour {
         _handlerMap.Add(key_, new _RequestHandler<TRequest, TResponse>(handler_));
     }
 }
-

@@ -48,4 +48,8 @@ public class ViewBase : MonoBehaviour {
     protected virtual void HandlePropertyChanged(
             INotifyPropertyChanged sender_, object property_){
     }
+
+    void OnDestroy() {
+        DataContext = null;
+    }
 }

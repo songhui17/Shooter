@@ -16,7 +16,10 @@ public class CreateActorView : ViewBase {
     private List<Text> _actorTextList;
 
     [SerializeField]
-    private Text _actorNameText;
+    Text _actorNameText;
+
+    [SerializeField]
+    List<string> _actorNameList;
 
     void Awake() {
         DataContext = _viewModel;
@@ -26,10 +29,16 @@ public class CreateActorView : ViewBase {
             var index = id;
             button_.onClick.AddListener(() =>
             {
-                var viewModel = DataContext as CreateActorViewModel;
-                var actorTypeId = viewModel.ActorTypeID;
-                if (index != actorTypeId) {
-                    viewModel.ActorTypeID = index;
+                if (index > 0) {
+                    ModalViewModel.Instance.ShowMessage(
+                        string.Format(StringTable.Value("Actor.CreateActor.Failed.NotImplemented"),
+                                      _actorNameList[index]), true);
+                }else {
+                    var viewModel = DataContext as CreateActorViewModel;
+                    var actorTypeId = viewModel.ActorTypeID;
+                    if (index != actorTypeId) {
+                        viewModel.ActorTypeID = index;
+                    }
                 }
             });
         }
@@ -69,6 +78,7 @@ public class CreateActorView : ViewBase {
                         for (int i = 0; i < _actorTextList.Count; i++){
                             _actorTextList[i].gameObject.SetActive(i == actorTypeId);
                         }
+                        _actorNameText.text = _actorNameList[actorTypeId];
                     }
                     break;
                 default:

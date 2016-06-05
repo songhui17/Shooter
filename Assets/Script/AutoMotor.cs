@@ -128,7 +128,9 @@ public class AutoMotor : MonoBehaviour {
         }
 
         _targetPosition = transform.position;
+#if !UNITY_ANDROID
         Cursor.lockState = CursorLockMode.Locked;
+#endif
     }
 
 
@@ -149,8 +151,11 @@ public class AutoMotor : MonoBehaviour {
             case MOVEMENT_STATE.Walking:
             case MOVEMENT_STATE.Idle:
                 {
-                    var moveX = Input.GetAxis("Horizontal");
-                    var moveZ = Input.GetAxis("Vertical");
+                    // var moveX = Input.GetAxis("Horizontal");
+                    // var moveZ = Input.GetAxis("Vertical");
+                    var moveX = JoyStick.Left.GetAxis("Horizontal");
+                    var moveZ = JoyStick.Left.GetAxis("Vertical");
+
                     var velocity = new Vector3(moveX, 0, moveZ);
                     velocity = transform.TransformDirection(velocity);
                     var movement =  velocity * _speed;
@@ -161,11 +166,13 @@ public class AutoMotor : MonoBehaviour {
                         _controller.Move(movement);
                     }
 
-                    var rotateY = Input.GetAxis("Mouse X");
+                    // var rotateY = Input.GetAxis("Mouse X");
+                    var rotateY = JoyStick.Right.GetAxis("Mouse X");
                     transform.Rotate(Vector3.up, rotateY * _rotateSpeed * Time.deltaTime, Space.World);
 
                     if (_headTransform != null) {
-                        var rotateX = Input.GetAxis("Mouse Y");
+                        // var rotateX = Input.GetAxis("Mouse Y");
+                        var rotateX = JoyStick.Right.GetAxis("Mouse Y");
                         rotateX *= -_rotateSpeed * Time.deltaTime;
                         // _headTransform.Rotate(Vector3.right, rotateX);  // TODO: why changing Y and Z
                         _headTransform.Rotate(new Vector3(rotateX, 0, 0)); // OR ->
@@ -219,13 +226,13 @@ public class AutoMotor : MonoBehaviour {
     }
 
     void Update(){
+#if !UNITY_ANDROID
         if (Input.GetMouseButton(0)){
             if (Cursor.lockState != CursorLockMode.Locked){
-                // TODO:
-                Debug.LogWarning("TODO");
-                // Cursor.lockState = CursorLockMode.Locked;
+                Cursor.lockState = CursorLockMode.Locked;
             }
         }
+#endif
         switch (ControlType){
             case CONTROL_TYPE.Auto:
                 UpdateAuto();

@@ -78,11 +78,11 @@ public class LoginViewModel : ViewModelBase {
             if (SockUtil.Instance.IsConnected) {
                 Debug.Log("Send LoginRequest");
                 State = ENUM_LOGIN_STATE.Logining;
-                SockUtil.Instance.SendRequest<LoginRequest, LoginRequestResponse>(
-                    "login", new LoginRequest() {
-                        username = Account,
-                        password = Password,
-                    }, OnLogin);
+                var request = new LoginRequest() {
+                    username = Account,
+                    password = Password,
+                };
+                SockUtil.Login(request, OnLogin);
                 break;
             } else if (SockUtil.Instance.IsConnectFailed) {
                 Debug.Log("Failed to Connect");
