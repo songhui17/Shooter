@@ -26,6 +26,10 @@ public class LevelManager : ViewModelBase {
     [SerializeField]
     private GameObject _spiderPrefab;
 
+    //TODO:
+    private int _currentLevelId = -1;
+    private Level2 _level2;
+
     void Awake() {
         if (Instance != null){
             enabled = false;
@@ -65,6 +69,19 @@ public class LevelManager : ViewModelBase {
                     };
                 }
                 break;
+            case "spider_remote":
+            case "spider_king":
+                {
+                    //TODO:
+                    if (_level2 != null) {
+                        return _level2.HandleSpawnBotRequest(request_);
+                    }else{
+                        var info = "_level2 is null";
+                        Debug.LogError(info);
+                        throw new Exception(info);
+                    }
+                }
+                break;
             default:
                 {
                     // TODO
@@ -77,20 +94,79 @@ public class LevelManager : ViewModelBase {
     }
 
     StartLevelRequestResponse HandleStartLevel(StartLevelRequest request_) {
+        Debug.Log("HandleStartLevel:" + request_);
+        _currentLevelId = request_.level_id;
+        //TODO:??
+        FightFinish = null;
         LoadingViewModel.Instance.Loaded += OnLoaded;
-        LoadingViewModel.Instance.StartFight("Prototype");
+        LoadingViewModel.Instance.StartFight("Prototype", LevelInfoList[_currentLevelId]);
         return new StartLevelRequestResponse() { errno = 0 };
     }
 
     public FightFinishViewModel FightFinish;
     FinishLevelRequestResponse HandleFinishLevel(FinishLevelRequest request_) {
-        FightFinish.IsFightFinished = true;
+        FightFinish.Win = request_.win;
+
+        // FightFinish.IsFightFinished = true;
+        var actorInfo = ActorManager.Instance.ActorInfo;
+        var actorObj = GameObject.FindGameObjectsWithTag("Player")[0];
+        var actor = actorObj.GetComponent<Bot>();
+        // actorInfo.max_hp = actor.MaxHP;
+        actorInfo.hp = actor.HP;
+        var updateHpRequest = new UpdateActorHpRequest() {
+            actor_id = actorInfo.actor_id,
+            hp = actorInfo.hp,
+            max_ammo = actorInfo.max_ammo,
+            ammo = actorInfo.ammo,
+        };
+        SockUtil.UpdateActorHp(updateHpRequest, OnUpdateActorHp);
+
+        //TODO
+        _level2 = null;
         return new FinishLevelRequestResponse() { errno = 0 };
+    }
+
+    void OnUpdateActorHp(UpdateActorHpRequestResponse response_, int requestId_) {
+        Debug.Log(response_);
+        if (response_.errno == (int)ENUM_SHOOTER_ERROR.E_OK) {
+            FightFinish.IsFightFinished = true;
+        }else{
+            ModalViewModel.Instance.ShowMessage(
+                StringTable.Value("Actor.UpdateActorHp.Failed"),
+                autoHide_:true, onHide_:() => {
+                    FightFinish.IsFightFinished = true;
+                });
+        }
     }
 
     void OnLoaded(string scene_) {
         LoadingViewModel.Instance.Loaded -= OnLoaded;
         SockUtil.EnterLevel(new EnterLevelRequest(), null);
+
+        // TODO:
+        var actorObj = GameObject.FindGameObjectsWithTag("Player")[0];
+        var actor = actorObj.GetComponent<Bot>();
+        var actorInfo = ActorManager.Instance.ActorInfo;
+        actor.MaxHP = actorInfo.max_hp;
+        actor.HP = actorInfo.hp;
+        actor.DestroyOnDead = false;
+        actor.BotKilled += (actor_) => {
+            // magic number -2
+            SockUtil.Level0BotKilled(new Level0BotKilledRequest() { bot_id = -2 }, null);
+        };
+
+        switch (_currentLevelId) {
+            case 1:
+                {
+                    var level2Obj = new GameObject("Level2");
+                    var level2 = level2Obj.AddComponent<Level2>();
+                    //TODO
+                    _level2 = level2;
+                }
+                break;
+            default:
+                break;
+        }
     }
 
 
@@ -108,5 +184,15 @@ public class LevelManager : ViewModelBase {
     }
     public void SetLevelInfo(List<LevelInfo> leveInfo_) {
         LevelInfoList = leveInfo_;
+    }
+
+    public bool LevelFinished {
+        get {
+            if (FightFinish != null) {
+                return FightFinish.IsFightFinished;
+            }else{
+                return false;
+            }
+        }
     }
 }

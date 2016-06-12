@@ -27,6 +27,18 @@ public class ActorManager : ViewModelBase {
     }
     private bool _hasActor { get { return ActorInfo != null; } }
 
+    //TODO:!!!!
+    public event Action<int> MaxAmmoChanged;
+    public int MaxAmmo {
+        get { return ActorInfo.max_ammo; }
+        set {
+            ActorInfo.max_ammo = value;
+            if (MaxAmmoChanged != null) {
+                MaxAmmoChanged(value);
+            }
+        }
+    }
+
     private int _requestCount = 0;
     public int RequestCount {
         get { return _requestCount; }

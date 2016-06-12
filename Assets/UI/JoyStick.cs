@@ -107,8 +107,8 @@ public class JoyStick : MonoBehaviour
     public void OnEndDrag(PointerEventData eventData) {
     }
 
-    public float GetAxis(string axis_) {
-#if UNITY_ANDROID
+    // For rotate Avatar (AvatarShow.cs)
+    public float GetJoyStickAxis(string axis_) {
         if (axis_ == "Horizontal") {
             return _horizontal;
         }
@@ -127,6 +127,11 @@ public class JoyStick : MonoBehaviour
             return _mouseY;
         }
         return 0;
+    }
+
+    public float GetAxis(string axis_) {
+#if UNITY_ANDROID
+        return GetJoyStickAxis(axis_);
 #else
         return Input.GetAxis(axis_);
 #endif

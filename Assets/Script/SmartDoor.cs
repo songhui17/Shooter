@@ -3,6 +3,9 @@ using System.Collections;
 
 public class SmartDoor : MonoBehaviour {
     [SerializeField]
+    private bool _autoOpen = false;
+
+    [SerializeField]
     private Animator _animator;
     public bool Opened { 
         get { 
@@ -28,9 +31,9 @@ public class SmartDoor : MonoBehaviour {
     }
 
     void OnCollisionEnter(Collision collision_){
-        Debug.Log(string.Format(
-                    "OnCollisionEnter collision_.gameObject: {0}",
-                    collision_.gameObject));
+        // Debug.Log(string.Format(
+        //             "OnCollisionEnter collision_.gameObject: {0}",
+        //             collision_.gameObject));
         // TODO:
         var rigidBody = GetComponent<Rigidbody>();
         if (rigidBody != null) rigidBody.isKinematic = true;
@@ -43,20 +46,25 @@ public class SmartDoor : MonoBehaviour {
     }
 
     void OnTriggerEnter(Collider collider_){
+        if (collider_.tag != "Player") return;
         Debug.Log(string.Format(
-                    "OnCollisionEnter collider_.gameObject: {0}",
+                    "OnTriggerEnter collider_.gameObject: {0}",
                     collider_.gameObject));
 
         collider_.gameObject.SendMessage(
                 "ReceiveSmartObject", gameObject,
                 SendMessageOptions.DontRequireReceiver);
-
         if (!Opened) {
             ShowHint = true;
+
+            if (_autoOpen) {
+                Trigger();
+            }
         }
     }
 
     void OnTriggerExit(Collider collider_){
+        if (collider_.tag != "Player") return;
         Debug.Log(string.Format(
                     "OnTriggerExit collider_.gameObject: {0}",
                     collider_.gameObject));
@@ -71,5 +79,26 @@ public class SmartDoor : MonoBehaviour {
     void Trigger(){
         _animator.SetBool("open", true);
         ShowHint = false;
+        StartCoroutine(CoWaitForOpen());
+    }
+
+
+    [SerializeField]
+    private Vector2[] _occupiedTiles;
+
+    IEnumerator CoWaitForOpen() {
+        while (true) {
+            yield return null;
+
+            var stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            if(stateInfo.IsName("SmartSlideDoorOpen")) {
+                // Debug.Break();
+                foreach(var tile in _occupiedTiles) {
+                    var columnCount = TileMap.Instance.ColumnCount;
+                    TileMap.Instance.Tiles[(int)(tile.x * columnCount + tile.y)] = 0;
+                }
+                break;
+            }
+        }
     }
 }

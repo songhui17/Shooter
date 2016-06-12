@@ -176,8 +176,7 @@ public class LoginView : ViewBase {
                     {
                         if (_welcomePanelAnimator != null){
                             _welcomePanelAnimator.SetTrigger("toggle");
-                            var account = viewModel.Account;
-                            account = account.Split('@')[0];
+                            var account = viewModel.ShortName;
                             _welcomeText.text = string.Format(StringTable.Value("Login.Welcome.Format"), account);
                         }
                     }

@@ -9,7 +9,7 @@ public class HPView : ViewBase {
     private Text _hpText;
 
     [SerializeField]
-    private Bot _bot;
+    private Actor _bot;
     
     void Awake(){
         DataContext = _bot;

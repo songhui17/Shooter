@@ -64,7 +64,7 @@ public partial class SockUtil : MonoBehaviour {
 
         try{
             Debug.Log("Connect to...");
-            _socket.Connect("192.168.1.103", 10240);
+            _socket.Connect("127.0.0.1", 10240);
             _connectionState = ENUM_CONNECTION_STATE.Connecting;
         }catch (SocketException ex){
             Debug.Log(ex);
@@ -85,24 +85,7 @@ public partial class SockUtil : MonoBehaviour {
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _socket.Blocking = false;
         }
-
-        // try{
-        //     // Debug.Log("Connect to...");
-        //     // _socket.Connect("127.0.0.1", 10240);
-        //     // _connectionState = ENUM_CONNECTION_STATE.Connecting;
         StartCoroutine(DelayedConnectToServer());
-        // }catch (SocketException ex){
-        //     Debug.Log(ex);
-        //     if (ex.ErrorCode == 10035 || ex.ErrorCode == 10056) {
-        //         // block or connected
-        //         _connectionState = ENUM_CONNECTION_STATE.Connecting;
-        //     }
-        //     else {
-        //         Debug.Log("Failed to connect, reconnect"
-        //                   + "in 5 secs, errcode: " + ex.ErrorCode);
-        //         _connectionState = ENUM_CONNECTION_STATE.Failed;
-        //     }
-        // }
     }
 
     void Update() {
@@ -118,9 +101,6 @@ public partial class SockUtil : MonoBehaviour {
                             "Connected {0} -> {1}\n", _connectionState,
                             ENUM_CONNECTION_STATE.Connected));
                         _connectionState = ENUM_CONNECTION_STATE.Connected;
-                        // _socket.Close();
-                        // _socket = null;
-                        // _connectionState = ENUM_CONNECTION_STATE.Failed;
                     }else if(_socket.Poll(-1, SelectMode.SelectError)) {
                         Debug.Log("Failed to connect, reconnect in 5 secs");
                         _connectionState = ENUM_CONNECTION_STATE.Failed;
@@ -129,45 +109,53 @@ public partial class SockUtil : MonoBehaviour {
                 break;
             case ENUM_CONNECTION_STATE.Connected:
                 {
-                    var readlist = new List<Socket>() { _socket };
-                    Socket.Select(readlist, null, null, 0);
-                    if (readlist.Count == 1) {
-                        var n = _socket.Receive(_readBuffer, _readIndex, (_readBuffer.Length - _readIndex), SocketFlags.None);
-                        if (n == 0){
-                            Debug.Log("Socket closed");
-                        }else{
-                            _readIndex += n;
-                            while (_readIndex >= 2){
-                                var index = 0;
-                                var length = ReadByte128(_readBuffer, ref index);
-                                if (length <= (_readIndex - 2)) {
-                                    // index = 0;
-                                    var handler = ReadString(_readBuffer, ref index);
-                                    var info = "Receive:\n";
-                                    info += "handler: " + handler + "\n";
-                                    var message = Encoding.UTF8.GetString(_readBuffer, index, (length - index + 2));
+                    try {
+                        var readlist = new List<Socket>() { _socket };
+                        Socket.Select(readlist, null, null, 0);
+                        if (readlist.Count == 1) {
+                            var n = _socket.Receive(_readBuffer, _readIndex, (_readBuffer.Length - _readIndex), SocketFlags.None);
+                            if (n == 0){
+                                // Debug.Log("Socket closed");
+                                ModalViewModel.Instance.ShowMessage(StringTable.Value("SockUtil.Connection.Closed"));
+                                _connectionState = ENUM_CONNECTION_STATE.Failed;
+                            }else{
+                                _readIndex += n;
+                                while (_readIndex >= 2){
+                                    var index = 0;
+                                    var length = ReadByte128(_readBuffer, ref index);
+                                    if (length <= (_readIndex - 2)) {
+                                        var handler = ReadString(_readBuffer, ref index);
+                                        // var info = "Receive:\n";
+                                        // info += "handler: " + handler + "\n";
+                                        var message = Encoding.UTF8.GetString(_readBuffer, index, (length - index + 2));
 
-                                    index = length + 2;
+                                        index = length + 2;
 
-                                    Array.Copy(_readBuffer, index, _swapBuffer, 0, (_readIndex - index));
-                                    var tmp = _swapBuffer;
-                                    _swapBuffer = _readBuffer;
-                                    _readBuffer = tmp;
-                                    _readIndex -= index;
+                                        Array.Copy(_readBuffer, index, _swapBuffer, 0, (_readIndex - index));
+                                        var tmp = _swapBuffer;
+                                        _swapBuffer = _readBuffer;
+                                        _readBuffer = tmp;
+                                        _readIndex -= index;
 
-                                    info += "message.Length: " + message.Length + "\n";
-                                    info += "message: " + message + "\n";
-                                    Debug.Log(info);
+                                        // info += "message.Length: " + message.Length + "\n";
+                                        // info += "message: " + message + "\n";
+                                        // Debug.Log(info);
 
-                                    // _socket.Close();
-                                    // _socket = null;
+                                        // _socket.Close();
+                                        // _socket = null;
 
-                                    RecvMessage(handler, message);
-                                } else {
-                                    break;
+                                        RecvMessage(handler, message);
+                                    } else {
+                                        break;
+                                    }
                                 }
                             }
                         }
+                    }catch(SocketException ex) {
+                        Debug.Log(ex);
+                        ModalViewModel.Instance.ShowMessage(StringTable.Value("SockUtil.Connection.ReceiveFailed"));
+
+                        _connectionState = ENUM_CONNECTION_STATE.Failed;
                     }
                 }
                 break;
@@ -252,7 +240,7 @@ public partial class SockUtil : MonoBehaviour {
     private static string ReadString(byte[] buffer_, ref int index_) {
         var length = ReadByte128(buffer_, ref index_);
         var utf8 = Encoding.UTF8;
-        Debug.Log("length: " + length);
+        // Debug.Log("length: " + length);
         var str = utf8.GetString(buffer_, index_, length);
         index_ += length;
         return str;
@@ -271,7 +259,22 @@ public partial class SockUtil : MonoBehaviour {
         index = WriteString(handler, _buffer, index);
         Array.Copy(bytes, 0, _buffer, index, bytes.Length);
         index += bytes.Length;
-        _socket.Send(_buffer, 0, index, SocketFlags.None);
+       
+        var byteSent = 0;
+        while (byteSent < index) {
+            try{
+                byteSent += _socket.Send(_buffer, byteSent, index - byteSent, SocketFlags.None);
+            }catch(SocketException ex) {
+                if (ex.ErrorCode == 10035) {
+                    // block
+                }
+                else {
+                    ModalViewModel.Instance.ShowMessage(StringTable.Value("SockUtil.Connection.SendFailed"));
+                    _connectionState = ENUM_CONNECTION_STATE.Failed;
+                    break;
+                }
+            }
+        }
     }
 
     private Dictionary<int, IReponseHandler> _callbackMap = new Dictionary<int, IReponseHandler>();
@@ -294,15 +297,22 @@ public partial class SockUtil : MonoBehaviour {
     }
 
     public void RegisterHandler<TRequest, TResponse>(
-            string key_, Func<TRequest, TResponse> handler_) where TRequest: class {
+            string key_, Func<TRequest, TResponse> handler_,
+            bool force_ = false) where TRequest: class {
         if (key_ == null || handler_ == null) {
             return;
         }
         key_ = string.Format("{0}_request", key_);
         if (_handlerMap.ContainsKey(key_)) {
-            throw new Exception(string.Format("Key: {0} is already register", key_));
+            if (!force_) {
+                throw new Exception(string.Format("Key: {0} is already register", key_));
+            }else{
+                Debug.Log(string.Format("RegisterHandler (replace) for key_:<b>{0}</b>", key_));
+                _handlerMap[key_] =  new _RequestHandler<TRequest, TResponse>(handler_);
+            }
+        }else{
+            Debug.Log(string.Format("RegisterHandler for key_:<b>{0}</b>", key_));
+            _handlerMap.Add(key_, new _RequestHandler<TRequest, TResponse>(handler_));
         }
-
-        _handlerMap.Add(key_, new _RequestHandler<TRequest, TResponse>(handler_));
     }
 }

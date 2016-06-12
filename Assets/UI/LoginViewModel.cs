@@ -22,6 +22,11 @@ public class LoginViewModel : ViewModelBase {
         get { return _account ?? (_account = ""); }
         set { _account = value; OnPropertyChanged("Account"); }
     }
+    public string ShortName {
+        get {
+            return Account.Split('@')[0];
+        }
+    }
 
     private string _password;
     public string Password {

@@ -32,7 +32,7 @@ public class Avatar : MonoBehaviour {
         RaycastHit hit;
         if (Physics.Raycast(_startPosition, _direction, out hit,
                 100, _layerMask)){
-            var bot = hit.collider.GetComponent<Bot>();
+            var bot = hit.collider.GetComponent<Actor>();
             if (bot != null){
                 _enemyHPView.gameObject.SetActive(true);
                 _enemyHPView.DataContext = bot;

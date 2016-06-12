@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public class ModalViewModel : ViewModelBase {
     private bool _show;
@@ -7,6 +8,7 @@ public class ModalViewModel : ViewModelBase {
         set { _show = value; OnPropertyChanged("Show"); }
     }
     public bool AutoHide { get; private set; }
+    public Action OnHide;
 
     private string _message;
     public string Message {
@@ -32,9 +34,10 @@ public class ModalViewModel : ViewModelBase {
         DontDestroyOnLoad(gameObject);
     }
 
-    public void ShowMessage(string message_, bool autoHide_=false) {
+    public void ShowMessage(string message_, bool autoHide_=false, Action onHide_=null) {
         Message = message_;
         AutoHide = autoHide_;
+        OnHide = onHide_;
         Show = true;
     }
 

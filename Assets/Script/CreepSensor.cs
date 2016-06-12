@@ -2,10 +2,11 @@ using UnityEngine;
 
 public class CreepSensor : Sensor {
     void OnTriggerEnter(Collider collider_){
-        Debug.Log(string.Format(
-                    "OnTriggerEnter collider_.gameObject: {0}",
-                    collider_.gameObject));
         if (collider_.tag == "Player"){
+            Debug.Log(string.Format(
+                        "OnTriggerEnter collider_.gameObject: {0}",
+                        collider_.gameObject));
+
             var target = collider_.gameObject;
             if (!AttackTargetList.Contains(target)){
                 var info = string.Format(
@@ -25,10 +26,11 @@ public class CreepSensor : Sensor {
     }
 
     void OnTriggerExit(Collider collider_){
-        Debug.Log(string.Format(
-                    "OnTriggerExit collider_.gameObject: {0}",
-                    collider_.gameObject));
         if (collider_.tag == "Player"){
+            Debug.Log(string.Format(
+                        "OnTriggerExit collider_.gameObject: {0}",
+                        collider_.gameObject));
+
             var target = collider_.gameObject;
             var length = AttackTargetList.Count;
             AttackTargetList.Remove(target);

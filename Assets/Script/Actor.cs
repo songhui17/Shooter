@@ -10,7 +10,7 @@ public class Actor : MonoBehaviour, INotifyPropertyChanged {
     private int _hp = 3;
     public int HP { 
         get { return _hp; }
-        protected set {
+        set {
             _hp = Mathf.Max(0, Mathf.Min(MaxHP, value));
             OnPropertyChanged("HP");
         }

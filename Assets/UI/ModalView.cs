@@ -38,7 +38,14 @@ public class ModalView : ViewBase {
                     {
                         if (viewModel.Show && viewModel.AutoHide) {
                             _messagePanel.SetActiveAnimated(true, () => {
-                                _messagePanel.SetActiveAnimated(false, null);
+                                if (viewModel.OnHide != null){
+                                    _messagePanel.SetActiveAnimated(false, () => {
+                                        viewModel.OnHide();
+                                        viewModel.OnHide = null;
+                                    });
+                                }else{
+                                    _messagePanel.SetActiveAnimated(false, null);
+                                }
                             }, 0, true);
                         }else{
                             _messagePanel.SetActive(viewModel.Show);

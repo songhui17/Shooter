@@ -118,14 +118,17 @@ public class AutoMotor : MonoBehaviour {
     // TODO: wrong
     private bool _jumpDirection = true;
 
+    private bool UseCharacterController {
+        get { return _controller != null; }
+    }
     private CharacterController _controller;
 
     void Start(){
         _controller = GetComponent<CharacterController>();
-        if (_controller == null){
-            enabled = false;
-            Debug.Log("There is not CharacterController attached");
-        }
+        // if (_controller == null){
+        //     enabled = false;
+        //     Debug.Log("There is not CharacterController attached");
+        // }
 
         _targetPosition = transform.position;
 #if !UNITY_ANDROID
@@ -146,78 +149,123 @@ public class AutoMotor : MonoBehaviour {
         }
     }
 
+    void MoveOnTileMap(Vector3 movement_, bool isJumping_ = false) {
+        // transform.position += movement_;
+        TileMap.Instance.Move(transform,  movement_, isJumping_);
+    }
+
+    void UpdateJumping() {
+        var gravity = -10.0f;
+        var movement = _jumpVelocity * Time.deltaTime;
+
+        _jumpVelocity.y += gravity * Time.deltaTime;
+        movement += _jumpVelocity * Time.deltaTime;
+        movement *= 0.5f;
+        if (UseCharacterController) {
+            _controller.Move(movement);
+        }else{
+            MoveOnTileMap(movement, isJumping_:true);
+        }
+        if (UseCharacterController) {
+            if (_controller.isGrounded){
+                MovementState = MOVEMENT_STATE.Walking;
+            }
+        }else{
+            if (transform.position.y < 0.01f) {
+                var position = transform.position;
+                position.y = 0;
+                transform.position = position;
+
+                MovementState = MOVEMENT_STATE.Walking;
+            }
+        }
+    }
+
+    void UpdateMove() {
+#if UNITY_STANDALONE
+        var moveX = Input.GetAxis("Horizontal");
+        var moveZ = Input.GetAxis("Vertical");
+#else
+        var moveX = JoyStick.Left.GetAxis("Horizontal");
+        var moveZ = JoyStick.Left.GetAxis("Vertical");
+#endif
+
+        var velocity = new Vector3(moveX, 0, moveZ);
+        velocity = transform.TransformDirection(velocity);
+        var movement =  velocity * _speed;
+
+        if (velocity.sqrMagnitude > 0.01f){
+            movement *= Time.deltaTime;
+            if (UseCharacterController) {
+                movement.y -= 0.08f;  // down a bit so that isGround return true;
+                _controller.Move(movement);
+            }else{
+                MoveOnTileMap(movement, isJumping_:false);
+            }
+        }
+
+#if UNITY_STANDALONE
+        var rotateY = JoyStick.Right.GetAxis("Mouse X");
+        // TODO: adjust JoyStick
+        rotateY /= 50;
+#else
+        var rotateY = JoyStick.Right.GetAxis("Mouse X");
+#endif
+        transform.Rotate(Vector3.up, rotateY * _rotateSpeed * Time.deltaTime, Space.World);
+
+        if (_headTransform != null) {
+#if UNITY_STANDALONE
+            var rotateX = JoyStick.Right.GetAxis("Mouse Y");
+            // TODO: adjust JoyStick
+            rotateX /= 50;
+#else
+            var rotateX = JoyStick.Right.GetAxis("Mouse Y");
+#endif
+            rotateX *= -_rotateSpeed * Time.deltaTime;
+            // _headTransform.Rotate(Vector3.right, rotateX);  // TODO: why changing Y and Z
+            _headTransform.Rotate(new Vector3(rotateX, 0, 0)); // OR ->
+            // _headTransform.localRotation = Quaternion.Euler(rotateX, 0, 0) * _headTransform.localRotation;
+            // clamp
+            var localEuler = _headTransform.localRotation.eulerAngles;
+            var curLocalX = localEuler.x;
+            curLocalX = curLocalX % 360;
+
+            var maxX = 80;  // down
+            var minX = -80;  // up
+            if (curLocalX > 180) {
+                curLocalX -= 360;
+            }
+
+            if (curLocalX < minX) curLocalX = minX;
+            if (curLocalX > maxX) curLocalX = maxX;
+            _headTransform.localRotation = Quaternion.Euler(curLocalX, 0, 0);
+        }
+
+        var jumpButton = Input.GetButton("Jump");
+        var isGrounded = UseCharacterController ?
+            _controller.isGrounded : transform.position.y < 0.01f;
+        var jump = jumpButton || !isGrounded;
+        if (jump){
+            Debug.Log(string.Format(
+                        "Jump jumpButton:{0}, isGrounded: {1}",
+                        jumpButton, isGrounded));
+            MovementState = MOVEMENT_STATE.Jumping;
+            _jumpVelocity = velocity * _speed;
+            if (jumpButton) _jumpVelocity.y += 5.0f;
+        }
+    }
+
     void UpdateManual(){
         switch (MovementState){
             case MOVEMENT_STATE.Walking:
             case MOVEMENT_STATE.Idle:
                 {
-                    // var moveX = Input.GetAxis("Horizontal");
-                    // var moveZ = Input.GetAxis("Vertical");
-                    var moveX = JoyStick.Left.GetAxis("Horizontal");
-                    var moveZ = JoyStick.Left.GetAxis("Vertical");
-
-                    var velocity = new Vector3(moveX, 0, moveZ);
-                    velocity = transform.TransformDirection(velocity);
-                    var movement =  velocity * _speed;
-
-                    if (velocity.sqrMagnitude > 0.01f){
-                        movement *= Time.deltaTime;
-                        movement.y -= 0.08f;  // down a bit so that isGround return true;
-                        _controller.Move(movement);
-                    }
-
-                    // var rotateY = Input.GetAxis("Mouse X");
-                    var rotateY = JoyStick.Right.GetAxis("Mouse X");
-                    transform.Rotate(Vector3.up, rotateY * _rotateSpeed * Time.deltaTime, Space.World);
-
-                    if (_headTransform != null) {
-                        // var rotateX = Input.GetAxis("Mouse Y");
-                        var rotateX = JoyStick.Right.GetAxis("Mouse Y");
-                        rotateX *= -_rotateSpeed * Time.deltaTime;
-                        // _headTransform.Rotate(Vector3.right, rotateX);  // TODO: why changing Y and Z
-                        _headTransform.Rotate(new Vector3(rotateX, 0, 0)); // OR ->
-                        // _headTransform.localRotation = Quaternion.Euler(rotateX, 0, 0) * _headTransform.localRotation;
-                        // clamp
-                        var localEuler = _headTransform.localRotation.eulerAngles;
-                        var curLocalX = localEuler.x;
-                        curLocalX = curLocalX % 360;
-
-                        var maxX = 80;  // down
-                        var minX = -80;  // up
-                        if (curLocalX > 180) {
-                            curLocalX -= 360;
-                        }
-
-                        if (curLocalX < minX) curLocalX = minX;
-                        if (curLocalX > maxX) curLocalX = maxX;
-                        _headTransform.localRotation = Quaternion.Euler(curLocalX, 0, 0);
-                    }
-
-                    var jumpButton = Input.GetButton("Jump");
-                    var jump = jumpButton || !_controller.isGrounded;
-                    if (jump){
-                        Debug.Log(string.Format(
-                                    "Jump jumpButton:{0}, _controller.isGrounded: {1}",
-                                    jumpButton, _controller.isGrounded));
-                        MovementState = MOVEMENT_STATE.Jumping;
-                        _jumpVelocity = velocity * _speed;
-                        if (jumpButton) _jumpVelocity.y += 5.0f;
-                    }
+                    UpdateMove();
                 }
                 break;
             case MOVEMENT_STATE.Jumping:
                 {
-                    var gravity = -10.0f;
-                    var movement = _jumpVelocity * Time.deltaTime;
-
-                    _jumpVelocity.y += gravity * Time.deltaTime;
-                    movement += _jumpVelocity * Time.deltaTime;
-                    movement *= 0.5f;
-                    _controller.Move(movement);
-                    
-                    if (_controller.isGrounded){
-                        MovementState = MOVEMENT_STATE.Walking;
-                    }
+                    UpdateJumping();
                 }
                 break;
             default:
@@ -226,7 +274,11 @@ public class AutoMotor : MonoBehaviour {
     }
 
     void Update(){
-#if !UNITY_ANDROID
+        if (LevelManager.Instance.LevelFinished) {
+            return;
+        }
+
+#if UNITY_STANDALONE
         if (Input.GetMouseButton(0)){
             if (Cursor.lockState != CursorLockMode.Locked){
                 Cursor.lockState = CursorLockMode.Locked;
@@ -257,7 +309,25 @@ public class AutoMotor : MonoBehaviour {
     private float _rotateAngle = 90;
 
     void FixedUpdate(){
+        if (LevelManager.Instance.LevelFinished) {
+            return;
+        }
+
+        // switch (ControlType){
+        //     case CONTROL_TYPE.Auto:
+        //         UpdateAuto();
+        //         break;
+        //     case CONTROL_TYPE.Manual:
+        //         UpdateManual();
+        //         break;
+        //     default:
+        //         throw new Exception("Invalid ControlType: " + ControlType);
+        // }
+
         if (_idle) return;
+
+        // TODO
+        if (!UseCharacterController) return;
 
         var position = transform.position;
         var vec2Target = _targetPosition - position;

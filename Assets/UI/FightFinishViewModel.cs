@@ -16,23 +16,12 @@ public class FightFinishViewModel : ViewModelBase {
         }
     }
 
-    // private static FightFinishViewModel _instance;
-    // public static FightFinishViewModel Instance {
-    //     get { return _instance; }
-    //     private set { _instance = value; }
-    // }
+    private bool _win = true;
+    public bool Win {
+        get { return _win; }
+        set { _win = value; OnPropertyChanged("Win"); }
+    }
 
-    // void Awake(){
-    //     if (Instance != null){
-    //         enabled = false;
-    //         Destroy(gameObject);
-    //         return;
-    //     }
-    //     Instance = this;
-
-    //     DontDestroyOnLoad(gameObject);
-    // }
-    //
     void Awake() {
         LevelManager.Instance.FightFinish = this;
     }

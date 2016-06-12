@@ -52,7 +52,9 @@ public class AttackAction {
         // _debugState.CanHit = canHit;
         // if (!canHit) return false;
 
+        // Debug.Log(attackTarget_);
         var actor = attackTarget_.GetComponent<Actor>();
+        // Debug.Log(actor);
         _debugState.IsAlive = actor.IsAlive;
         if (!actor.IsAlive){
             return false;

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Weapon : MonoBehaviour {
+public class Weapon : ViewModelBase {
     public float AttackRange = 2;
 
     public virtual bool Attack(){

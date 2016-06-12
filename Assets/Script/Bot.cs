@@ -14,6 +14,11 @@ public class Bot : Actor {
     [SerializeField]
     private Animator _animator;
 
+    public int ID = 0;
+
+    [HideInInspector]
+    public bool DestroyOnDead = true;
+
     #endregion
 
     #region Properties
@@ -172,8 +177,10 @@ public class Bot : Actor {
                 BotKilled(this);
             }
 
-            Destroy(gameObject);
             HP = 0;
+            if (DestroyOnDead) {
+                Destroy(gameObject);
+            }
         }
     }
 
@@ -197,15 +204,15 @@ public class Bot : Actor {
     private bool EnterGoto(){
         if (Motor == null) return false;
         if (_verbose){
-            var info = "EnterGoto:\n";
-            info += string.Format("_gotoTargetPosition: {0}, {1}, {2}\n",
-                    _gotoTargetPosition.x, _gotoTargetPosition.y, _gotoTargetPosition.z); 
-            info += string.Format("_gotoTargetDirection: {0}, {1}, {2}\n",
-                    _gotoTargetDirection.x, _gotoTargetDirection.y, _gotoTargetDirection.z); 
-            info += "_gotoForceDirection: " + _gotoForceDirection + "\n";
-            info += "_gotoStoppingDistance:" + _gotoStoppingDistance + "\n";
-            info += "_gotoStoppingAngle:" + _gotoStoppingAngle + "\n";
-            Debug.Log(info);
+            // var info = "EnterGoto:\n";
+            // info += string.Format("_gotoTargetPosition: {0}, {1}, {2}\n",
+            //         _gotoTargetPosition.x, _gotoTargetPosition.y, _gotoTargetPosition.z); 
+            // info += string.Format("_gotoTargetDirection: {0}, {1}, {2}\n",
+            //         _gotoTargetDirection.x, _gotoTargetDirection.y, _gotoTargetDirection.z); 
+            // info += "_gotoForceDirection: " + _gotoForceDirection + "\n";
+            // info += "_gotoStoppingDistance:" + _gotoStoppingDistance + "\n";
+            // info += "_gotoStoppingAngle:" + _gotoStoppingAngle + "\n";
+            // Debug.Log(info);
         }
 
         _gotoDone = false;
@@ -228,7 +235,7 @@ public class Bot : Actor {
     }
 
     private void ExitGoto(){
-        Debug.Log("ExitGoto");
+        // Debug.Log("ExitGoto");
         Motor.MovementDone -= OnMovementDone;
         Motor.ClearDestination();
 

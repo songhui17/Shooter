@@ -12,6 +12,17 @@ Actor.GetAccountInfo.Failed:账号信息获取失败
 Actor.GetActorInfo.Failed:角色信息获取失败
 Actor.CreateActor.Failed:角色创建失败
 Actor.GetActorLevelInfo.Failed:角色闯关信息获取失败
+Actor.UpdateActorHp.Failed:角色数据同步失败
 
 Level.StartLevel.Failed.NoSuchLevel:选中关卡即将到来
 Level.GetLevelInfo.Failed:关卡信息获取失败
+
+SockUtil.Connection.Closed:出错啦，请重新启动游戏
+SockUtil.Connection.ReceiveFailed:出错啦，请重新启动游戏
+SockUtil.Connection.SendFailed:网络异常，请重新启动游戏
+
+Tips.Standalone:瞄准怪物，点击鼠标左键射击
+Tips.Android:瞄准怪物能自动射击
+
+HUD.Ammo.Reload:按R键装弹
+HUD.Ammo.Format:<color=yellow>{0}</color>/{1}

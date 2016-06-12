@@ -48,7 +48,8 @@ public class AvatarShow : MonoBehaviour {
 
         }
 
-        var rotateY = -_joystick.GetAxis("Mouse X");
+        // var rotateY = -_joystick.GetAxis("Mouse X");
+        var rotateY = -_joystick.GetJoyStickAxis("Mouse X");
         _rotateSpeed += rotateY * Time.deltaTime;
         if (Mathf.Abs(_rotateSpeed) > 0) {
             var newSpeed = _rotateSpeed;

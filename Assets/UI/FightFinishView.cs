@@ -5,28 +5,15 @@ public class FightFinishView : ViewBase {
     #region Fields
     [SerializeField]
     private bool _verbose = true;
+
+    [SerializeField]
+    private GameObject _winPanel;
+
+    [SerializeField]
+    private GameObject _losePanel;
     #endregion
-
-    #region Properties
-
-    // private static FightFinishView _instance;
-    // public static FightFinishView Instance {
-    //     get { return _instance; }
-    //     private set { _instance = value; }
-    // }
-
-    #endregion
-
 
     void Awake(){
-        // if (Instance != null){
-        //     enabled = false;
-        //     Destroy(gameObject);
-        //     return;
-        // }
-        // Instance = this;
-
-        // DontDestroyOnLoad(gameObject);
         DataContext = GetComponent<FightFinishViewModel>();
     }
 
@@ -46,6 +33,13 @@ public class FightFinishView : ViewBase {
             switch (property_ as string){
                 case "IsFightFinished":
                     {
+                        if (viewModel.Win) {
+                            _winPanel.SetActive(true);
+                            _losePanel.SetActive(false);
+                        }else{
+                            _winPanel.SetActive(false);
+                            _losePanel.SetActive(true);
+                        }
                         var isFightFinished = viewModel.IsFightFinished;
                         if (_verbose)
                             Debug.Log(string.Format(

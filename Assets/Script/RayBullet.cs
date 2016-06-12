@@ -20,6 +20,7 @@ public class RayBullet : MonoBehaviour {
         var head = Mathf.Min(_target, _head);
 
         if (tail == _target && head == _target){
+            Debug.Log("Destroy Bullet");
             Destroy(gameObject);
             return;
         }
@@ -46,7 +47,9 @@ public class RayBullet : MonoBehaviour {
 
         RaycastHit hit;
         // TODO: handle block
-        var layerMask = ~(1 << LayerMask.NameToLayer("SmartTrigger") &
+        var layerMask = ~(
+                1 << LayerMask.NameToLayer("SmartObject") &
+                1 << LayerMask.NameToLayer("SmartTrigger") &
                 1 << LayerMask.NameToLayer("Trigger"));
         if (Physics.Raycast(_startPosition, _direction, out hit,
                 _direction.magnitude, layerMask)){

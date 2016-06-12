@@ -2,8 +2,30 @@ using UnityEngine;
 
 public class RayWeapon : Weapon {
     private GameObject _bulletPrefab;
-    public int TotalBullet = 18;
-    public int LeftBullet = 18;
+
+    [SerializeField]
+    private int _totalBullet = 18;
+    public int TotalBullet {
+        get { return _totalBullet; }
+        set { 
+            _totalBullet = value;
+            var actorInfo = ActorManager.Instance.ActorInfo;
+            actorInfo.max_ammo = _totalBullet;
+            OnPropertyChanged("TotalBullet");
+        }
+    }
+
+    [SerializeField]
+    private int _leftBullet = 18;
+    public int LeftBullet {
+        get { return _leftBullet; }
+        set {
+            _leftBullet = value;
+            var actorInfo = ActorManager.Instance.ActorInfo;
+            actorInfo.ammo = _leftBullet;
+            OnPropertyChanged("LeftBullet");
+        }
+    }
 
     public Transform Muzzle;
     public Animator GunAnimator;
@@ -11,7 +33,24 @@ public class RayWeapon : Weapon {
     [SerializeField]
     private LayerMask _layerMask;
 
+    void OnDestroy() {
+        ActorManager.Instance.MaxAmmoChanged -= OnMaxAmmoChanged;
+    }
+
+    void OnMaxAmmoChanged(int maxAmmo_) {
+        TotalBullet = maxAmmo_;
+    }
+
     void Start(){
+        ActorManager.Instance.MaxAmmoChanged += OnMaxAmmoChanged;
+
+        var actorInfo = ActorManager.Instance.ActorInfo;
+        LeftBullet = actorInfo.ammo;
+        TotalBullet = actorInfo.max_ammo;
+        if (LeftBullet == 0) {
+            UpdateAmmoCount();
+        }
+
         _bulletPrefab = Resources.Load("RayBullet", typeof(GameObject)) as GameObject;
     }
 
@@ -24,7 +63,7 @@ public class RayWeapon : Weapon {
         RaycastHit hit;
         if (Physics.Raycast(_startPosition, _direction, out hit,
                 100, _layerMask)){
-            var bot = hit.collider.GetComponent<Bot>();
+            var bot = hit.collider.GetComponent<Actor>();
             if (bot != null){
                 return true;
             }else{
@@ -39,6 +78,10 @@ public class RayWeapon : Weapon {
     }
 
     void Update(){
+        if (LevelManager.Instance.LevelFinished) {
+            return;
+        }
+
         if (CheckFire()){
             var currentStateInfo = GunAnimator.GetCurrentAnimatorStateInfo(0);
             if (currentStateInfo.IsName("default")){
@@ -112,9 +155,20 @@ public class RayWeapon : Weapon {
         }
     }
 
+    private bool UpdateAmmoCount() {
+        var count = Mathf.Min(18, TotalBullet);
+        LeftBullet += count;
+        TotalBullet -= count;
+        return count > 0;
+    }
+
     public override bool Reload(){
         var left = LeftBullet;
-        LeftBullet += 18;
+
+        if (!UpdateAmmoCount()) {
+            return false;
+        }
+
         GunAnimator.SetTrigger("DoReload");
         Debug.Log(string.Format(
             "Reload LeftBullet {0} -> {1}", left, LeftBullet));

@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 using System;
+using System.Collections.Generic;
+
+using Shooter;
 
 public enum LoadingType {
     StartFight = 0,
@@ -18,7 +21,6 @@ public class LoadingViewModel : ViewModelBase {
         get { return _loadingType; }
         private set { _loadingType = value; }
     }
-
     
     // TODO
     private string _currentScene = "";
@@ -46,6 +48,12 @@ public class LoadingViewModel : ViewModelBase {
             _loadingProgress = value;
             OnPropertyChanged("LoadingProgress");
         }
+    }
+
+    private string _tips;
+    public string Tips {
+        get { return _tips ?? (_tips = ""); }
+        set { _tips = value; OnPropertyChanged("Tips"); }
     }
 
     private static LoadingViewModel _instance;
@@ -121,16 +129,38 @@ public class LoadingViewModel : ViewModelBase {
                                     IsLoading, scene));
     }
 
+    private void SetTips() {
+#if UNITY_STANDALONE
+            Tips = StringTable.Value("Tips.Standalone");
+#else
+            Tips = StringTable.Value("Tips.Android");
+#endif
+    }
+
     // TODO:
-    public void StartFight(string scene_) {
+    public void StartFight(string scene_, LevelInfo levelInfo_) {
         LoadingType = LoadingType.StartFight;
 
-        IsLoading = true;
         Blackboard.Instance.LastLoadingDone = false;
         _loadingStartTime = Time.realtimeSinceStartup;
 
         _currentScene = scene_;
         var scene = scene_;
+        var level = new Level() {
+            ID = (levelInfo_.level_id + 1).ToString(),
+            Title = levelInfo_.title,
+            Description = "",
+            TaskDescriptionList = new List<string>() {
+                levelInfo_.task1, levelInfo_.task2, 
+                levelInfo_.task3,
+            }
+        };
+        CurrentLevel = level;
+
+        SetTips();
+
+        IsLoading = true;
+
         _loadingOperation = SceneManager.LoadSceneAsync(scene);
         if (_verbose)
             Debug.Log(string.Format("IsLoading: {0}, scene: {1}",
@@ -140,6 +170,8 @@ public class LoadingViewModel : ViewModelBase {
     public void BackToLobby(string scene_ = "Lobby"){
         LoadingType = LoadingType.BackToLobby;
         _currentScene = scene_;
+
+        SetTips();
 
         IsLoading = true;
         Blackboard.Instance.LastLoadingDone = false;

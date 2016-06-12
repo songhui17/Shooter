@@ -84,6 +84,7 @@ public class LoadingView : ViewBase {
         if (newContext_ != null){
             HandlePropertyChanged(newContext_, "IsLoading");
             HandlePropertyChanged(newContext_, "LoadingProgress");
+            HandlePropertyChanged(newContext_, "Tips");
         }else{
 
         }
@@ -131,6 +132,11 @@ public class LoadingView : ViewBase {
                         }
                     }
                     break;
+                case "Tips":
+                    {
+                        _tipsText.text = viewModel.Tips;
+                    }
+                    break;
                 default:
                     break;
             }
@@ -141,16 +147,9 @@ public class LoadingView : ViewBase {
         _startFightPanel.SetActive(true);
         _backToLobbyPanel.SetActive(false);
 
-        // TODO:
-        return;
-
         var level = viewModel_.CurrentLevel;
-        var chapterId = level.Chapter.ID;
-
-        // TODO: copy from ChapterInfoView.cs
-        var format = "{0}-{1} {2}";
         var title = string.Format(
-           format, chapterId, level.ID, level.Title);
+                "第{0}关 {1}", level.ID, level.Title);
         _startFightTitleText.text = title; 
 
         // TODO: copy from ChapterInfoView.cs
