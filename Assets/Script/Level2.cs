@@ -6,8 +6,87 @@ using System.Collections.Generic;
 using Shooter;
 using Vector3 = UnityEngine.Vector3;
 
-public class Level2 : MonoBehaviour {
+
+public class TaskInfo : DataModelBase {
+    private ActorLevelInfo _actorLevelInfo;
+    public ActorLevelInfo ActorLevelInfo {
+        get {
+            return _actorLevelInfo ?? (_actorLevelInfo = new ActorLevelInfo());
+        }
+        set {
+            _actorLevelInfo = value; OnPropertyChanged("ActorLevelInfo");
+        }
+    }
+
+    protected string _task1Info;
+    public virtual string Task1Info {
+        get { return _task1Info ?? (_task1Info = ""); }
+        set { _task1Info = value; OnPropertyChanged("Task1Info"); }
+    }
+
+    protected string _task2Info;
+    public virtual string Task2Info {
+        get { return _task2Info ?? (_task2Info = ""); }
+        set { _task2Info = value; OnPropertyChanged("Task2Info"); }
+    }
+
+    protected string _task3Info;
+    public virtual string Task3Info {
+        get { return _task3Info ?? (_task3Info = ""); }
+        set { _task3Info = value; OnPropertyChanged("Task3Info"); }
+    }
+
+    public LevelInfo LevelInfo {
+        set {
+            _task1Info = value.task1;
+            _task2Info = value.task2;
+            _task3Info = value.task3;
+        }
+    }
+}
+
+public class Level2TaskInfo : TaskInfo {
+    private int _tripleKill = 0;
+    public int TripleKill { 
+        get { return _tripleKill; }
+        set { _tripleKill = value; OnPropertyChanged("Task1Info"); }
+    }
+
+    private float _towerHp = 1;
+    public float TowerHp {
+        get { return _towerHp; }
+        set { _towerHp = value; OnPropertyChanged("Task3Info"); }
+    }
+
+    public override string Task1Info {
+        get {
+            if (_task1Info == null) return "";
+            else{
+                return string.Format("{0} ({1}/1)", _task1Info, TripleKill);
+            }
+        }
+        set { _task1Info = value; OnPropertyChanged("Task1Info"); }
+    }
+
+    public override string Task3Info {
+        get {
+            if (_task3Info == null) return "";
+            else{
+                return string.Format("{0} ({1}%)", _task3Info, (int)(TowerHp * 100));
+            }
+        }
+        set { _task3Info = value; OnPropertyChanged("Task3Info"); }
+    }
+}
+
+public interface ILevel {
+    TaskInfo GetTaskInfo();
+    SpawnBotRequestResponse HandleSpawnBotRequest(SpawnBotRequest request_);
+}
+
+public class Level2 : MonoBehaviour, ILevel {
     private List<BotRemote> _botList = new List<BotRemote>();
+
     private GameObject _spiderRemotePrefab;
     private GameObject SpiderRemotePrefab {
         get {
@@ -19,6 +98,7 @@ public class Level2 : MonoBehaviour {
     private GameObject SpiderKingPrefab {
         get {
             return _spiderKingPrefab ?? (
+                // _spiderKingPrefab = Resources.Load<GameObject>("Spider_Remote"));
                 _spiderKingPrefab = Resources.Load<GameObject>("Spider_King"));
         }
     }
@@ -31,20 +111,28 @@ public class Level2 : MonoBehaviour {
         }
     }
 
+    public Level2TaskInfo TaskInfo = new Level2TaskInfo();
+    public TaskInfo GetTaskInfo() {
+        return TaskInfo;
+    }
+
     private Transform _playerTransform;
 
     void Awake() {
+        TaskInfo.LevelInfo = LevelManager.Instance.CurrentLevelInfo;
+
         SockUtil.Instance.RegisterHandler<BotTransformSyncRequest, BotTransformSyncRequestResponse>("bot_transform_sync", HandleBotTransformSyncRequest, force_:true);
         SockUtil.Instance.RegisterHandler<BotExploseRequest, BotExploseRequestResponse>("bot_explose", HandleBotExploseRequest, force_:true);
         SockUtil.Instance.RegisterHandler<TowerHpSyncRequest, TowerHpSyncRequestResponse>("tower_hp_sync", HandleTowerHpSyncRequest, force_:true);
         SockUtil.Instance.RegisterHandler<SpawnItemRequest, SpawnItemRequestResponse>("spawn_item", HandleSpawnItemRequest, force_:true);
         SockUtil.Instance.RegisterHandler<UseItemRequest, UseItemRequestResponse>("use_item", HandleUseItemRequest, force_:true);
-
         SockUtil.Instance.RegisterHandler<BotPlayAnimationRequest, BotPlayAnimationRequestResponse>("bot_play_animation", HandleBotPlayAnimationRequest, force_:true);
+        SockUtil.Instance.RegisterHandler<ActorLevelInfoSyncRequest, ActorLevelInfoSyncRequestResponse>("actor_level_info_sync", HandleActorLevelInfoSyncRequest, force_:true);
+        SockUtil.Instance.RegisterHandler<KillReportSyncRequest, KillReportSyncRequestResponse>("kill_report_sync", HandleKillReportSyncRequest, force_:true);
     }
 
     IEnumerator Start() {
-        var wait = new WaitForSeconds(1);
+        var wait = new WaitForSeconds(0.1f);
         var player = GameObject.FindGameObjectsWithTag("Player")[0].transform;
         var transformSyncRequest = new BotTransformSyncRequest() {
             bot_id = -2,
@@ -58,6 +146,18 @@ public class Level2 : MonoBehaviour {
             transformSyncRequest.position.z = position.z;
             SockUtil.BotTransformSync(transformSyncRequest, null); 
         }
+    }
+
+    ActorLevelInfoSyncRequestResponse HandleActorLevelInfoSyncRequest(ActorLevelInfoSyncRequest request_) {
+        Debug.Log(request_);
+        TaskInfo.ActorLevelInfo = request_.actor_level_info;
+        return new ActorLevelInfoSyncRequestResponse();
+    }
+
+    KillReportSyncRequestResponse HandleKillReportSyncRequest(KillReportSyncRequest request_) {
+        Debug.Log(request_);
+        TaskInfo.TripleKill = request_.kill_report.triple_kill;
+        return new KillReportSyncRequestResponse();
     }
 
     BotPlayAnimationRequestResponse HandleBotPlayAnimationRequest(BotPlayAnimationRequest request_) {
@@ -148,6 +248,8 @@ public class Level2 : MonoBehaviour {
 
     TowerHpSyncRequestResponse HandleTowerHpSyncRequest(TowerHpSyncRequest request_) {
         var towerId = request_.tower_id;
+        var normalized = request_.max_hp > 0 ? request_.hp / (float)request_.max_hp : 0;
+        TaskInfo.TowerHp = normalized;
         switch (towerId) {
             case 0:
                 break;
@@ -180,14 +282,15 @@ public class Level2 : MonoBehaviour {
             case "spider_king":
                 {
                     var spiderKingObj = GameObject.Instantiate(SpiderKingPrefab);
-                    var spiderKing = spiderKingObj.GetComponent<Bot>();
+                    // var spiderKing = spiderKingObj.GetComponent<Bot>();
+                    var spiderKing = spiderKingObj.GetComponent<Actor>();
                     spiderKing.ID = request_.bot_id;
                     spiderKing.BotKilled += (bot_) => {
                         SockUtil.Level0BotKilled(new Level0BotKilledRequest(){
-                            bot_id = (bot_ as Bot).ID
+                            bot_id = bot_.ID
                         }, null);
                     };
-                    // _botList.Add(spiderKing);
+                     _botList.Add(spiderKing as BotRemote);
 
                     return new SpawnBotRequestResponse() {
                         errno = 0,

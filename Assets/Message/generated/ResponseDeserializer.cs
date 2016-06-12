@@ -53,6 +53,12 @@ namespace Shooter
                 return response.response;
             }
 
+            if (handler_ == "kill_report_sync_request_response") {
+                var response = JsonUtility.FromJson<_KillReportSyncRequestResponse>(payload_) as _KillReportSyncRequestResponse;
+                requestId_ = response.request_id;
+                return response.response;
+            }
+
             if (handler_ == "bot_play_animation_request_response") {
                 var response = JsonUtility.FromJson<_BotPlayAnimationRequestResponse>(payload_) as _BotPlayAnimationRequestResponse;
                 requestId_ = response.request_id;
@@ -119,6 +125,12 @@ namespace Shooter
                 return response.response;
             }
 
+            if (handler_ == "actor_level_info_sync_request_response") {
+                var response = JsonUtility.FromJson<_ActorLevelInfoSyncRequestResponse>(payload_) as _ActorLevelInfoSyncRequestResponse;
+                requestId_ = response.request_id;
+                return response.response;
+            }
+
             requestId_ = -1;
             return null;
         }
@@ -157,6 +169,23 @@ namespace Shooter
                         response = ret,
                     };
                     sockUtil_.SendMessage<_GetActorLevelInfoRequestResponse>(xxx_response, xxx_response.handler);
+                }
+                return true;
+            }
+
+            if (handler_ == "kill_report_sync_request") {
+                var request = JsonUtility.FromJson<BaseRequest<KillReportSyncRequest>>(payload_) as BaseRequest<KillReportSyncRequest>;
+                var requestId = request.request_id;
+                var requireResponse = request.require_response;
+                var ret = h_.RecvMessage(request.request) as KillReportSyncRequestResponse;
+                if (requireResponse) {
+                    var xxx_response = new _KillReportSyncRequestResponse() {
+                        handler = string.Format("{0}_response", handler_),
+                        type = "response",
+                        request_id = requestId,
+                        response = ret,
+                    };
+                    sockUtil_.SendMessage<_KillReportSyncRequestResponse>(xxx_response, xxx_response.handler);
                 }
                 return true;
             }
@@ -225,6 +254,23 @@ namespace Shooter
                         response = ret,
                     };
                     sockUtil_.SendMessage<_CreateActorRequestResponse>(xxx_response, xxx_response.handler);
+                }
+                return true;
+            }
+
+            if (handler_ == "actor_level_info_sync_request") {
+                var request = JsonUtility.FromJson<BaseRequest<ActorLevelInfoSyncRequest>>(payload_) as BaseRequest<ActorLevelInfoSyncRequest>;
+                var requestId = request.request_id;
+                var requireResponse = request.require_response;
+                var ret = h_.RecvMessage(request.request) as ActorLevelInfoSyncRequestResponse;
+                if (requireResponse) {
+                    var xxx_response = new _ActorLevelInfoSyncRequestResponse() {
+                        handler = string.Format("{0}_response", handler_),
+                        type = "response",
+                        request_id = requestId,
+                        response = ret,
+                    };
+                    sockUtil_.SendMessage<_ActorLevelInfoSyncRequestResponse>(xxx_response, xxx_response.handler);
                 }
                 return true;
             }

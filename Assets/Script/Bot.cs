@@ -14,8 +14,6 @@ public class Bot : Actor {
     [SerializeField]
     private Animator _animator;
 
-    public int ID = 0;
-
     [HideInInspector]
     public bool DestroyOnDead = true;
 
@@ -167,16 +165,12 @@ public class Bot : Actor {
         Profiler.EndSample();
     }
     
-    public event Action<Bot> BotKilled;
     void ApplyDamage(int damage_){
         Debug.Log("I got hit damage_: " + damage_);
         HP--;
         if (HP <= 0)
         {
-            if (BotKilled != null) {
-                BotKilled(this);
-            }
-
+            OnBotKilled();
             HP = 0;
             if (DestroyOnDead) {
                 Destroy(gameObject);

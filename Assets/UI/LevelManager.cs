@@ -23,12 +23,20 @@ public class LevelManager : ViewModelBase {
         set { _levelInfoList = value; OnPropertyChanged("LevelInfoList"); }
     }
 
-    [SerializeField]
-    private GameObject _spiderPrefab;
-
     //TODO:
     private int _currentLevelId = -1;
-    private Level2 _level2;
+    public LevelInfo CurrentLevelInfo {
+        get { return LevelInfoList[_currentLevelId]; }
+    }
+
+    private ILevel _level2;
+    public TaskInfo TaskInfo {
+        get {
+            if (_level2 == null) return null;
+            else return _level2.GetTaskInfo();
+        }
+        set { OnPropertyChanged("TaskInfo"); }
+    }
 
     void Awake() {
         if (Instance != null){
@@ -49,49 +57,59 @@ public class LevelManager : ViewModelBase {
 
     SpawnBotRequestResponse HandleSpawnBotRequest(SpawnBotRequest request_) {
         Debug.Log(request_);
-        switch (request_.bot_type) {
-            case "spider":
-                {
-                    var position = new Vector3() {
-                        x = request_.position.x,
-                        y = request_.position.y,
-                        z = request_.position.z,
-                    };
-                    var rotation = Quaternion.Euler(0, request_.rotation, 0);
-                    var spider = GameObject.Instantiate(
-                        _spiderPrefab, position, rotation) as GameObject;
-                    var spiderBot = spider.GetComponent<Bot>();
-                    spiderBot.BotKilled += (bot_) => {
-                        SockUtil.Level0BotKilled(new Level0BotKilledRequest(), null);
-                    };
-                    return new SpawnBotRequestResponse() {
-                        errno = 0,
-                    };
-                }
-                break;
-            case "spider_remote":
-            case "spider_king":
-                {
-                    //TODO:
-                    if (_level2 != null) {
-                        return _level2.HandleSpawnBotRequest(request_);
-                    }else{
-                        var info = "_level2 is null";
-                        Debug.LogError(info);
-                        throw new Exception(info);
-                    }
-                }
-                break;
-            default:
-                {
-                    // TODO
-                    var info = "Invalid bot_type:" + request_.bot_type;
-                    Debug.LogError(info);
-                    throw new Exception(info);
-                }
-                break;
+        if (_level2 != null) {
+            return _level2.HandleSpawnBotRequest(request_);
+        }else{
+            var info = "_level2 is null";
+            Debug.LogError(info);
+            throw new Exception(info);
         }
+
+        // switch (request_.bot_type) {
+        //     case "spider":
+        //         {
+        //             var position = new Vector3() {
+        //                 x = request_.position.x,
+        //                 y = request_.position.y,
+        //                 z = request_.position.z,
+        //             };
+        //             var rotation = Quaternion.Euler(0, request_.rotation, 0);
+        //             var spider = GameObject.Instantiate(
+        //                 _spiderPrefab, position, rotation) as GameObject;
+        //             var spiderBot = spider.GetComponent<Bot>();
+        //             spiderBot.BotKilled += (bot_) => {
+        //                 SockUtil.Level0BotKilled(new Level0BotKilledRequest(), null);
+        //             };
+        //             return new SpawnBotRequestResponse() {
+        //                 errno = 0,
+        //             };
+        //         }
+        //         break;
+        //     case "spider_remote":
+        //     case "spider_king":
+        //         {
+        //             //TODO:
+        //             if (_level2 != null) {
+        //                 return _level2.HandleSpawnBotRequest(request_);
+        //             }else{
+        //                 var info = "_level2 is null";
+        //                 Debug.LogError(info);
+        //                 throw new Exception(info);
+        //             }
+        //         }
+        //         break;
+        //     default:
+        //         {
+        //             // TODO
+        //             var info = "Invalid bot_type:" + request_.bot_type;
+        //             Debug.LogError(info);
+        //             throw new Exception(info);
+        //         }
+        //         break;
+        // }
     }
+
+    
 
     StartLevelRequestResponse HandleStartLevel(StartLevelRequest request_) {
         Debug.Log("HandleStartLevel:" + request_);
@@ -156,12 +174,18 @@ public class LevelManager : ViewModelBase {
         };
 
         switch (_currentLevelId) {
+            case 0:
+                {
+                    var level0Obj = new GameObject("Level0");
+                    _level2 = level0Obj.AddComponent<Level0>();
+                    TaskInfo = _level2.GetTaskInfo();
+                }
+                break;
             case 1:
                 {
                     var level2Obj = new GameObject("Level2");
-                    var level2 = level2Obj.AddComponent<Level2>();
-                    //TODO
-                    _level2 = level2;
+                    _level2 = level2Obj.AddComponent<Level2>();
+                    TaskInfo = _level2.GetTaskInfo();
                 }
                 break;
             default:
@@ -182,6 +206,7 @@ public class LevelManager : ViewModelBase {
         }
         ActorLevelInfoList = ActorLevelInfoList;
     }
+
     public void SetLevelInfo(List<LevelInfo> leveInfo_) {
         LevelInfoList = leveInfo_;
     }

@@ -6,6 +6,15 @@ public class Actor : MonoBehaviour, INotifyPropertyChanged {
 
     #region Properties
 
+    public int ID = 0;
+
+    public event Action<Actor> BotKilled;
+    protected void OnBotKilled() {
+        if (BotKilled != null) {
+            BotKilled(this);
+        }
+    }
+
     [SerializeField]
     private int _hp = 3;
     public int HP { 

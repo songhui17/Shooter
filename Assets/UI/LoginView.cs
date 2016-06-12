@@ -2,8 +2,11 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class LoginView : ViewBase {
+    // [SerializeField]
+    // private Animator _loginPanelAnimator;
+
     [SerializeField]
-    private Animator _loginPanelAnimator;
+    private AnimatedActivate _loginPanelAnimator;
 
     [SerializeField]
     private GameObject _enterButton;
@@ -13,6 +16,12 @@ public class LoginView : ViewBase {
 
     [SerializeField]
     private InputField _passwordInputField;
+
+    [SerializeField]
+    private InputField _ipInputField;
+
+    [SerializeField]
+    private InputField _portInputField;
 
     [SerializeField]
     private AnimatedActivate _statusPanel;
@@ -29,11 +38,11 @@ public class LoginView : ViewBase {
     private ENUM_LOGIN_STATE _prevLoginState;
 
     [SerializeField]
-    private LoginViewModel _viewModel;
+    private LoginManager _viewModel;
 
     void Awake(){
         _accountInputField.onValueChanged.AddListener(value_ => {
-            var viewModel = DataContext as LoginViewModel;
+            var viewModel = DataContext as LoginManager;
             if (viewModel == null) return;
             if (viewModel.Account != value_) {
                 viewModel.Account = value_;
@@ -41,14 +50,32 @@ public class LoginView : ViewBase {
         });
 
         _passwordInputField.onValueChanged.AddListener(value_ => {
-            var viewModel = DataContext as LoginViewModel;
+            var viewModel = DataContext as LoginManager;
             if (viewModel == null) return;
             if (viewModel.Password != value_) {
                 viewModel.Password = value_;
             }
         });
 
-        // DataContext = gameObject.AddComponent<LoginViewModel>();
+        _ipInputField.onValueChanged.AddListener(value_ => {
+            var viewModel = DataContext as LoginManager;
+            if (viewModel == null) return;
+            if (viewModel.IP != value_) {
+                viewModel.IP = value_;
+            }
+        });
+
+        _portInputField.onValueChanged.AddListener(value_ => {
+            var viewModel = DataContext as LoginManager;
+            if (viewModel == null) return;
+            if (viewModel.Port.ToString() != value_) {
+                try{
+                    viewModel.Port = int.Parse(value_);
+                }catch{
+                }
+            }
+        });
+
         DataContext = _viewModel;
     }
 
@@ -60,9 +87,12 @@ public class LoginView : ViewBase {
             HandlePropertyChanged(newContext_, "Account");
             HandlePropertyChanged(newContext_, "Password");
             HandlePropertyChanged(newContext_, "ShowLoginPanel");
+
+            HandlePropertyChanged(newContext_, "IP");
+            HandlePropertyChanged(newContext_, "Port");
             // HandlePropertyChanged(newContext_, "ShowStatusPanel");
 
-            _prevLoginState = (newContext_ as LoginViewModel).State;
+            _prevLoginState = (newContext_ as LoginManager).State;
             if (_prevLoginState == ENUM_LOGIN_STATE.Idle) {
                 // TODO: EnterState
                 _statusPanel.SetActive(false);
@@ -75,7 +105,7 @@ public class LoginView : ViewBase {
 
     protected override void HandlePropertyChanged(
             INotifyPropertyChanged sender_, object property_){
-        var viewModel = sender_ as LoginViewModel;
+        var viewModel = sender_ as LoginManager;
         if (viewModel != null) {
             switch (property_ as string){
                 case "Account":
@@ -92,10 +122,26 @@ public class LoginView : ViewBase {
                         }
                     }
                     break;
+                case "IP":
+                    {
+                        if (_ipInputField.text != viewModel.IP) {
+                            _ipInputField.text = viewModel.IP;
+                        }
+                    }
+                    break;
+                case "Port":
+                    {
+                        if (_portInputField.text != viewModel.Port.ToString()) {
+                            _portInputField.text = viewModel.Port.ToString();
+                        }
+                    }
+                    break;
                 case "ShowLoginPanel":
                     {
                         // _loginPanelAnimator.SetTrigger("toggle");
-                        _loginPanelAnimator.SetBool("Open", viewModel.ShowLoginPanel);
+                        // _loginPanelAnimator.SetBool("Open", viewModel.ShowLoginPanel);
+                        // Debug.LogError("+++++++++++++++" + viewModel.ShowLoginPanel);
+                        _loginPanelAnimator.SetActive(viewModel.ShowLoginPanel);
                         _enterButton.SetActive(!viewModel.ShowLoginPanel);
                     }
                     break;
@@ -188,14 +234,14 @@ public class LoginView : ViewBase {
     }
 
     public void OnLoginButton(){
-        var viewModel = DataContext as LoginViewModel;
+        var viewModel = DataContext as LoginManager;
         if (viewModel != null){
             viewModel.Login();
         }
     }
 
     public void OnEnterButton(){
-        var viewModel = DataContext as LoginViewModel;
+        var viewModel = DataContext as LoginManager;
         if (viewModel != null){
             viewModel.EnterLobby();
         }

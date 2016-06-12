@@ -67,7 +67,7 @@ public class ActorManager : ViewModelBase {
 
         RequestCount++;
         var request = new GetAccountInfoRequest() {
-            username = LoginViewModel.Instance.Account
+            username = LoginManager.Instance.Account
         };
         SockUtil.GetAccountInfo(request, OnGetAccountInfo);
 
@@ -111,7 +111,7 @@ public class ActorManager : ViewModelBase {
         };
 
         var request = new CreateActorRequest() {
-            username = LoginViewModel.Instance.Account,
+            username = LoginManager.Instance.Account,
             actor_type = actorTypes[typeId_],
         };
         SockUtil.CreateActor(request, OnCreateActor);
@@ -136,7 +136,7 @@ public class ActorManager : ViewModelBase {
         RequestCount++;
 
         var request = new GetActorInfoRequest() {
-            username = LoginViewModel.Instance.Account,
+            username = LoginManager.Instance.Account,
         };
         SockUtil.GetActorInfo(request, OnGetActorInfo);
     }
@@ -158,7 +158,7 @@ public class ActorManager : ViewModelBase {
     public void GetActorLevelInfo() {
         RequestCount++;
         var request = new GetActorLevelInfoRequest() {
-            username = LoginViewModel.Instance.Account,
+            username = LoginManager.Instance.Account,
         };
         SockUtil.GetActorLevelInfo(request, OnGetActorLevelInfo);
     }
@@ -184,7 +184,7 @@ public class ActorManager : ViewModelBase {
     void GetLevelInfo() {
         RequestCount++;
         var request = new GetLevelInfoRequest() {
-            username = LoginViewModel.Instance.Account,
+            username = LoginManager.Instance.Account,
         };
         SockUtil.GetLevelInfo(request, OnGetLevelInfo);
     }

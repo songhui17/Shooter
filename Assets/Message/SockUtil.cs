@@ -64,7 +64,7 @@ public partial class SockUtil : MonoBehaviour {
 
         try{
             Debug.Log("Connect to...");
-            _socket.Connect("127.0.0.1", 10240);
+            _socket.Connect(LoginManager.Instance.IP, LoginManager.Instance.Port);
             _connectionState = ENUM_CONNECTION_STATE.Connecting;
         }catch (SocketException ex){
             Debug.Log(ex);

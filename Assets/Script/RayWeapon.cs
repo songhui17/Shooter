@@ -157,7 +157,7 @@ public class RayWeapon : Weapon {
 
     private bool UpdateAmmoCount() {
         var count = Mathf.Min(18, TotalBullet);
-        LeftBullet += count;
+        LeftBullet = Mathf.Min(18, LeftBullet + count);
         TotalBullet -= count;
         return count > 0;
     }

@@ -17,7 +17,7 @@ public class FightActorInfoView : ViewBase {
     void Awake(){
         DataContext = _bot;
 
-        var actorName = LoginViewModel.Instance.ShortName;
+        var actorName = LoginManager.Instance.ShortName;
         _actorNameText.text = actorName;
     }
 

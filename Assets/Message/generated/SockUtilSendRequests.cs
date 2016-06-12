@@ -11,6 +11,10 @@ public partial class SockUtil {
         return SockUtil.Instance.SendRequest<GetActorLevelInfoRequest, GetActorLevelInfoRequestResponse>("get_actor_level_info", request_, callback_);
     }
 
+    public static int KillReportSync(KillReportSyncRequest request_, Action<KillReportSyncRequestResponse, int> callback_ = null) {
+        return SockUtil.Instance.SendRequest<KillReportSyncRequest, KillReportSyncRequestResponse>("kill_report_sync", request_, callback_);
+    }
+
     public static int BotPlayAnimation(BotPlayAnimationRequest request_, Action<BotPlayAnimationRequestResponse, int> callback_ = null) {
         return SockUtil.Instance.SendRequest<BotPlayAnimationRequest, BotPlayAnimationRequestResponse>("bot_play_animation", request_, callback_);
     }
@@ -25,6 +29,10 @@ public partial class SockUtil {
 
     public static int CreateActor(CreateActorRequest request_, Action<CreateActorRequestResponse, int> callback_ = null) {
         return SockUtil.Instance.SendRequest<CreateActorRequest, CreateActorRequestResponse>("create_actor", request_, callback_);
+    }
+
+    public static int ActorLevelInfoSync(ActorLevelInfoSyncRequest request_, Action<ActorLevelInfoSyncRequestResponse, int> callback_ = null) {
+        return SockUtil.Instance.SendRequest<ActorLevelInfoSyncRequest, ActorLevelInfoSyncRequestResponse>("actor_level_info_sync", request_, callback_);
     }
 
     public static int StartLevel(StartLevelRequest request_, Action<StartLevelRequestResponse, int> callback_ = null) {
